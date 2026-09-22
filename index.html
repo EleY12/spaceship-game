@@ -204,10 +204,10 @@ let playerMaxHealth = 5.0;
 
 let shipX = 350;
 let shipY = 400;
-let shipSpeed = 4;
-let playerMissileSpeed = 6;
-let savedSpeed = 4;
-let savedMissileSpeed = 6;
+let shipSpeed = 6;
+let playerMissileSpeed = 9;
+let savedSpeed = 6;
+let savedMissileSpeed = 9;
 
 let shieldCount = 0;
 let dualShotTimer = 0;
@@ -267,13 +267,13 @@ let leaderboard = [];
 
 let shakeIntensity = 0;
 let shakeTimer = 0;
-let powerupSpeed = 2;
+let powerupSpeed = 2.5;
 
 const keys = {};
 
-const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.2 + 0.2]);
-const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.4 + 0.6]);
-const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.8 + 1.2]);
+const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.3 + 0.3]);
+const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.5 + 0.8]);
+const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 1.0 + 1.5]);
 
 // ==========================================
 // 5. HELPER FUNCTIONS & MISSION SYSTEM
@@ -290,8 +290,8 @@ function spawnExplosion(x, y, count = 15, colorSet = null) {
     particles.push({
       x: x,
       y: y,
-      vx: (Math.random() - 0.5) * 5,
-      vy: (Math.random() - 0.5) * 5,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
       life: Math.floor(Math.random() * 20) + 20,
       color: colorSet[Math.floor(Math.random() * colorSet.length)]
     });
@@ -349,12 +349,12 @@ function getRandomScout(hp = 1.0) {
     enemyX = Math.random() * 700 + 50;
     enemyY = -Math.random() * 100 - 50;
     speedX = 0;
-    speedY = Math.random() * 1.5 + 1.5 + speedBonus;
+    speedY = Math.random() * 2 + 2.2 + speedBonus;
     typeStr = "SINE";
   } else if (roll < 0.70) {
     enemyX = Math.random() < 0.5 ? -20 : 820;
     enemyY = Math.random() * 250 + 50;
-    speedX = Math.random() * 2 + 1.5 + speedBonus;
+    speedX = Math.random() * 2.5 + 2 + speedBonus;
     if (enemyX > 0) speedX = -speedX;
     speedY = 0;
     typeStr = "STANDARD";
@@ -362,7 +362,7 @@ function getRandomScout(hp = 1.0) {
     enemyX = Math.random() * 780;
     enemyY = -Math.random() * 100 - 50;
     speedX = 0;
-    speedY = Math.random() * 2 + 2 + speedBonus;
+    speedY = Math.random() * 2.5 + 2.5 + speedBonus;
     typeStr = "STANDARD";
   }
   return { x: enemyX, y: enemyY, vx: speedX, vy: speedY, type: typeStr, sinAngle: 0, hp: hp };
@@ -376,8 +376,8 @@ function triggerLaserStorm() {
     laserStormProjectiles.push({
       x: Math.random() * 600 + 100,
       y: -Math.random() * 150 - 50,
-      vx: (Math.random() - 0.5) * 4,
-      vy: Math.random() * 2 + 2
+      vx: (Math.random() - 0.5) * 5,
+      vy: Math.random() * 3 + 3
     });
   }
 }
@@ -420,7 +420,7 @@ function spawnStandardEnemies() {
     tanks.push({
       x: Math.random() * 740,
       y: -Math.random() * 400 - 100,
-      speed: Math.random() * 1 + 0.8 + levelSpeedMultiplier * 0.3,
+      speed: Math.random() * 1.2 + 1.2 + levelSpeedMultiplier * 0.3,
       hp: 3,
       fireTimer: 0
     });
@@ -445,10 +445,10 @@ function resetGame() {
   playerHealth = 3.0;
   shipX = 350;
   shipY = 400;
-  shipSpeed = 4;
-  playerMissileSpeed = 6;
-  savedSpeed = 4;
-  savedMissileSpeed = 6;
+  shipSpeed = 6;
+  playerMissileSpeed = 9;
+  savedSpeed = 6;
+  savedMissileSpeed = 9;
   permShotTier = 1;
   shieldCount = 0;
   dualShotTimer = 0;
@@ -492,8 +492,8 @@ function fireMissiles() {
       missiles.push({
         x: shipX + 25,
         y: shipY,
-        vx: (Math.random() - 0.5) * 12,
-        vy: -(Math.random() * playerMissileSpeed + 4)
+        vx: (Math.random() - 0.5) * 16,
+        vy: -(Math.random() * playerMissileSpeed + 5)
       });
     }
     return;
@@ -512,26 +512,26 @@ function fireMissiles() {
     missiles.push({ x: shipX + 40, y: shipY, vx: 0, vy: -playerMissileSpeed });
   } else if (activeTier === 3) {
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 10, y: shipY, vx: -1.5, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 40, y: shipY, vx: 1.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 10, y: shipY, vx: -1.8, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 40, y: shipY, vx: 1.8, vy: -playerMissileSpeed });
   } else if (activeTier === 4) {
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 2, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -2.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 2.5, vy: -playerMissileSpeed });
   } else if (activeTier === 5) {
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 15, y: shipY, vx: -1.5, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 35, y: shipY, vx: 1.5, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -3, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 3, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 15, y: shipY, vx: -1.8, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 35, y: shipY, vx: 1.8, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -3.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 3.5, vy: -playerMissileSpeed });
   } else if (activeTier >= 6) {
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX - 5, y: shipY, vx: -3.5, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 55, y: shipY, vx: 3.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -2.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 2.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX - 5, y: shipY, vx: -4.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 55, y: shipY, vx: 4.5, vy: -playerMissileSpeed });
   }
 }
 
@@ -660,8 +660,8 @@ window.addEventListener("keydown", e => {
       if (cheatGodmode) {
         savedSpeed = shipSpeed;
         savedMissileSpeed = playerMissileSpeed;
-        shipSpeed = 12;
-        playerMissileSpeed = 16;
+        shipSpeed = 16;
+        playerMissileSpeed = 20;
         playerHealth = playerMaxHealth;
         shieldCount = 2;
       } else {
@@ -705,7 +705,7 @@ window.addEventListener("keydown", e => {
       }
     } else if (e.key === "Enter") {
       level++;
-      levelSpeedMultiplier += 0.1;
+      levelSpeedMultiplier += 0.15;
       scoreNeededForNextLevel = score + 150;
       isBossStage = false;
       bossSpawned = false;
@@ -745,16 +745,16 @@ function gameLoop(timestamp) {
   if (!lastTime) lastTime = timestamp;
   const elapsed = timestamp - lastTime;
 
-  if (elapsed < fpsInterval) return; // Skip extra frames on high Hz monitors
+  if (elapsed < fpsInterval) return;
 
   lastTime = timestamp - (elapsed % fpsInterval);
 
   if (cheatGodmode) { playerHealth = playerMaxHealth; shieldCount = 2; }
   if (cheatMoney) { score += 9999; }
 
-  for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.2; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
-  for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.4; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
-  for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 0.6; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.3; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.5; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 0.8; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
 
   if (gameState === "PLAYING") {
     if (fireCooldown > 0) fireCooldown--;
@@ -769,8 +769,8 @@ function gameLoop(timestamp) {
     }
 
     let currentSpd = shipSpeed;
-    if (speedBoostTimer > 0) currentSpd *= 1.5;
-    if (dodgeTimer > 0) currentSpd *= 1.4;
+    if (speedBoostTimer > 0) currentSpd *= 1.6;
+    if (dodgeTimer > 0) currentSpd *= 1.5;
 
     if (keys["ArrowLeft"]) shipX -= currentSpd;
     if (keys["ArrowRight"]) shipX += currentSpd;
@@ -779,7 +779,7 @@ function gameLoop(timestamp) {
 
     if (keys[" "] && fireCooldown <= 0) {
       fireMissiles();
-      fireCooldown = (qModeActive || cheat100Bullets) ? 6 : 14;
+      fireCooldown = (qModeActive || cheat100Bullets) ? 5 : 10;
     }
 
     const maxBottomY = 780;
@@ -798,7 +798,7 @@ function gameLoop(timestamp) {
         x: shipX + 32,
         y: shipY + 65,
         vx: (Math.random() - 0.5) * 2,
-        vy: Math.random() * 2 + 1,
+        vy: Math.random() * 3 + 2,
         life: 15,
         color: speedBoostTimer > 0 ? "#00ffff" : "#ff8c00"
       });
@@ -816,7 +816,7 @@ function gameLoop(timestamp) {
         bosses = [];
         const numBosses = Math.floor(level / 10);
         const bossMaxHp = 20 + numBosses * 15;
-        const bossSpd = 1.2 + levelSpeedMultiplier;
+        const bossSpd = 1.8 + levelSpeedMultiplier;
 
         for (let idx = 0; idx < numBosses; idx++) {
           bosses.push({
@@ -837,7 +837,7 @@ function gameLoop(timestamp) {
     } else {
       isBossStage = false; bossSpawned = false; bosses = [];
       if (score >= scoreNeededForNextLevel) {
-        level++; levelSpeedMultiplier += 0.1; scoreNeededForNextLevel += 150;
+        level++; levelSpeedMultiplier += 0.15; scoreNeededForNextLevel += 150;
         levelupSound(); spawnStandardEnemies();
       }
     }
@@ -917,7 +917,7 @@ function gameLoop(timestamp) {
           lp.x += lp.vx; lp.y += lp.vy;
           if (lp.y > 620 || lp.x < -20 || lp.x > 820) {
             lp.x = Math.random() * 700 + 50; lp.y = -Math.random() * 120 - 30;
-            lp.vx = (Math.random() - 0.5) * 4; lp.vy = Math.random() * 2 + 2;
+            lp.vx = (Math.random() - 0.5) * 6; lp.vy = Math.random() * 3 + 3;
           }
         });
       }
@@ -926,8 +926,8 @@ function gameLoop(timestamp) {
     if (!isBossStage) {
       enemies.forEach((e, eIdx) => {
         if (e.type === "SINE") {
-          e.sinAngle += 0.05;
-          e.x += Math.sin(e.sinAngle) * 2;
+          e.sinAngle += 0.08;
+          e.x += Math.sin(e.sinAngle) * 3;
           e.y += e.vy;
         } else {
           e.x += e.vx; e.y += e.vy;
@@ -941,29 +941,29 @@ function gameLoop(timestamp) {
       tanks.forEach(tank => {
         tank.y += tank.speed;
         tank.fireTimer++;
-        if (tank.fireTimer >= 120 && tank.y > 0) {
+        if (tank.fireTimer >= 90 && tank.y > 0) {
           tank.fireTimer = 0;
-          bossMissiles.push({ x: tank.x + 10, y: tank.y + 60, vx: 0, vy: 4 + levelSpeedMultiplier });
+          bossMissiles.push({ x: tank.x + 10, y: tank.y + 60, vx: 0, vy: 5 + levelSpeedMultiplier });
           tankShootSound();
         }
         if (tank.y > 650) {
           tank.x = Math.random() * 740; tank.y = -Math.random() * 200 - 100;
-          tank.speed = Math.random() * 1 + 0.8 + levelSpeedMultiplier * 0.3; tank.hp = 3; tank.fireTimer = 0;
+          tank.speed = Math.random() * 1.2 + 1.2 + levelSpeedMultiplier * 0.3; tank.hp = 3; tank.fireTimer = 0;
         }
       });
     } else if (bossSpawned) {
       bosses.forEach(b => {
-        if (b.y < b.targetY) b.y += 1;
+        if (b.y < b.targetY) b.y += 1.5;
         else {
           b.x += b.speed * b.dir;
           if (b.x <= 20 || b.x >= 660) b.dir *= -1;
         }
 
         b.fireTimer++;
-        if (b.fireTimer >= 80) {
+        if (b.fireTimer >= 65) {
           b.fireTimer = 0;
           b.patternAngle += 0.2;
-          const bSpd = 3.5 + levelSpeedMultiplier;
+          const bSpd = 4.5 + levelSpeedMultiplier;
           for (let offset = 0; offset < 25; offset++) {
             const ang = b.patternAngle + (offset * (2 * Math.PI / 25));
             bossMissiles.push({
@@ -1195,20 +1195,23 @@ function gameLoop(timestamp) {
       }
     });
 
-    // BOSS & TANK LASERS
+    // FIXED: ROTATED BOSS & TANK LASERS FACING DOWN
     bossMissiles.forEach(bm => {
+      ctx.save();
+      ctx.translate(bm.x + 20, bm.y + 40);
+      ctx.rotate(Math.PI / 2); // Rotate 90 degrees clockwise to point down
+
       if (picture_boss_missile.complete && picture_boss_missile.naturalWidth !== 0) {
-        ctx.drawImage(picture_boss_missile, bm.x, bm.y, 40, 80);
+        ctx.drawImage(picture_boss_missile, -40, -20, 80, 40);
       } else {
-        ctx.save();
         ctx.shadowColor = "#ff00ff";
         ctx.shadowBlur = 15;
         ctx.fillStyle = "#ff00ff";
-        ctx.fillRect(bm.x - 4, bm.y, 10, 28);
+        ctx.fillRect(-14, -5, 28, 10);
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(bm.x - 2, bm.y + 2, 6, 24);
-        ctx.restore();
+        ctx.fillRect(-12, -3, 24, 6);
       }
+      ctx.restore();
     });
 
     // ENEMIES
