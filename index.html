@@ -767,7 +767,10 @@ function gameLoop(timestamp) {
       isBossStage = true;
       if (!bossSpawned) {
         bosses = [];
-        const numBosses = Math.floor(level / 10);
+        // MODIFIED: Adds an extra boss every 5 boss fights (50 levels) instead of every 10 levels
+        const bossFightCount = Math.floor(level / 10);
+        const numBosses = Math.floor((bossFightCount - 1) / 5) + 1;
+        
         const bossMaxHp = 20 + numBosses * 15;
         const bossSpd = 1.8 + levelSpeedMultiplier;
 
@@ -917,7 +920,6 @@ function gameLoop(timestamp) {
           b.fireTimer = 0;
           b.patternAngle += 0.2;
           const bSpd = 4.5 + levelSpeedMultiplier;
-          // MODIFIED: Reduced from 25 to 15 missiles per burst
           for (let offset = 0; offset < 15; offset++) {
             const ang = b.patternAngle + (offset * (2 * Math.PI / 15));
             bossMissiles.push({
