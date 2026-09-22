@@ -192,7 +192,7 @@ let activeField = "username";
 let inputUsername = "";
 let inputPassword = "";
 let inputEmail = "";
-let authMessage = SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY" ? "Warning: Paste your SUPABASE_KEY into index.html!" : "";
+let authMessage = "";
 let loggedInUser = null;
 let userBestScore = 0;
 
@@ -272,6 +272,7 @@ let powerupSpeed = 3;
 
 const keys = {};
 
+// Background Stars
 const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.4 + 0.4]);
 const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.6 + 1.2]);
 const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 1.0 + 2.5]);
@@ -540,7 +541,6 @@ function fireMissiles() {
 // 6. DATABASE AUTH & LEADERBOARD
 // ==========================================
 async function loadLeaderboard() {
-  if (SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") return;
   try {
     const data = await supabaseFetch("Player%20Info?select=high_score,username,level&order=high_score.desc&limit=5");
     if (Array.isArray(data)) {
@@ -609,7 +609,7 @@ async function handleLogin() {
 }
 
 async function updateScoreInSupabase(finalScore, reachedLevel) {
-  if (!loggedInUser || SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") return;
+  if (!loggedInUser) return;
   const newHigh = Math.max(userBestScore, finalScore);
   userBestScore = newHigh;
 
@@ -799,7 +799,6 @@ function gameLoop() {
       score += 300; selectNewMission();
     }
 
-    // FIXED BOSS STAGE SPAWNING & TRANSITIONS
     if (level % 10 === 0) {
       isBossStage = true;
       if (!bossSpawned) {
@@ -975,7 +974,7 @@ function gameLoop() {
 
     const isInvincible = dodgeTimer > 0 || cheatGodmode;
 
-    // COLLISION LOGIC WITH RESTORED SHIELD ABSORPTION
+    // COLLISION LOGIC FOR ENEMIES & TANKS WITH DESTRUCTIBLE HP
     enemies.forEach((enemy, eIdx) => {
       if (Math.abs(shipX + 32 - enemy.x - 10) < 35 && Math.abs(shipY + 35 - enemy.y - 10) < 35) {
         spawnExplosion(enemy.x + 10, enemy.y + 10, 10);
@@ -1004,6 +1003,43 @@ function gameLoop() {
         }
       });
     });
+
+    // TANK COLLISION & DESTRUCTION BY PLAYER MISSILES
+    if (!isBossStage) {
+      tanks.forEach((tank, tIdx) => {
+        if (Math.abs(shipX + 32 - tank.x - 30) < 45 && Math.abs(shipY + 35 - tank.y - 30) < 45) {
+          spawnExplosion(tank.x + 30, tank.y + 30, 25);
+          if (!isInvincible) {
+            if (shieldCount > 0) { shieldCount--; triggerShake(15, 8); }
+            else { playerHealth -= 1.0; triggerShake(35, 20); }
+          }
+          tanks.splice(tIdx, 1);
+        }
+
+        missiles.forEach((m, mIdx) => {
+          if (m.x > tank.x && m.x < tank.x + 60 && m.y > tank.y && m.y < tank.y + 60) {
+            missiles.splice(mIdx, 1);
+            tank.hp -= 1.0;
+            spawnExplosion(m.x, m.y, 5);
+            triggerShake(5, 2);
+            if (tank.hp <= 0) {
+              spawnExplosion(tank.x + 30, tank.y + 30, 25);
+              triggerShake(20, 12);
+              const pts = addScore(50);
+              spawnFloatingText(tank.x, tank.y, `+${pts}`);
+
+              if (currentMission === "SNIPER" || currentMission === "TANK_BUSTER") {
+                missionProgress++;
+                if ((currentMission === "SNIPER" && missionProgress >= 3) || (currentMission === "TANK_BUSTER" && missionProgress >= 5)) {
+                  score += 350; selectNewMission();
+                }
+              }
+              tanks.splice(tIdx, 1);
+            }
+          }
+        });
+      });
+    }
 
     // BOSS PLAYER MISSILE COLLISIONS
     if (isBossStage && bossSpawned) {
@@ -1167,7 +1203,7 @@ function gameLoop() {
       }
     });
 
-    // ENEMIES WITH IMAGE LOAD CHECK & SPRITE FALLBACK
+    // ENEMIES
     enemies.forEach(e => {
       if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
         ctx.drawImage(picture_enemy, e.x, e.y, 20, 20);
@@ -1225,7 +1261,7 @@ function gameLoop() {
       }
     }
 
-    // SHIELDS VISUAL GLOW
+    // SHIELDS
     if (shieldCount >= 1) { ctx.strokeStyle = "#00bfff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(shipX + 32, shipY + 35, 45, 0, Math.PI * 2); ctx.stroke(); }
     if (shieldCount === 2) { ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(shipX + 32, shipY + 35, 51, 0, Math.PI * 2); ctx.stroke(); }
 
@@ -1233,14 +1269,14 @@ function gameLoop() {
     particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); });
     floatingTexts.forEach(ft => { ctx.fillStyle = ft.color; ctx.font = "20px Arial"; ctx.fillText(ft.text, ft.x, ft.y); });
 
-    // HUD DISPLAY
+    // HUD
     ctx.fillStyle = "#fff"; ctx.font = "20px Arial";
     ctx.fillText(`Score: ${score}`, 10, 25);
     ctx.fillStyle = "#32ff32"; ctx.fillText(`Level: ${level}`, 10, 50);
     ctx.fillStyle = "#00bfff"; ctx.fillText(`Pilot: ${loggedInUser}`, 10, 75);
     ctx.fillStyle = "#ffd700"; ctx.fillText(`Best: ${userBestScore}`, 10, 100);
 
-    // HEARTS HUD
+    // HEARTS
     for (let i = 0; i < 5; i++) {
       const heartX = 800 - 174 + i * 32;
       const isFull = playerHealth >= i + 1;
