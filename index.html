@@ -1188,16 +1188,16 @@ function gameLoop(timestamp) {
       ctx.restore();
     });
 
-    // ENEMIES (WITH ROTATION FOR SIDEWAYS MOVEMENT)
+    // ENEMIES (CORRECTED ROTATION DIRECTION)
     enemies.forEach(e => {
       ctx.save();
       ctx.translate(e.x + 10, e.y + 10);
 
-      // Rotate if moving horizontally
+      // Rotate based on horizontal movement direction
       if (e.vx > 0) {
-        ctx.rotate(Math.PI / 2); // Facing right
+        ctx.rotate(-Math.PI / 2); // Facing right
       } else if (e.vx < 0) {
-        ctx.rotate(-Math.PI / 2); // Facing left
+        ctx.rotate(Math.PI / 2); // Facing left
       }
 
       if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
