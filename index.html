@@ -5,7 +5,7 @@
   <title>Space Shooter: Ultimate Edition (Web)</title>
   <style>
     body {
-      background-color: #111;
+      background-color: #050508;
       color: #fff;
       font-family: Arial, sans-serif;
       display: flex;
@@ -18,12 +18,12 @@
     }
     #game-container {
       position: relative;
-      box-shadow: 0 0 25px rgba(0, 191, 255, 0.4);
+      box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
     }
     canvas {
       background-color: #000;
       display: block;
-      border: 2px solid #333;
+      border: 2px solid #1a1a2e;
     }
   </style>
 </head>
@@ -63,6 +63,15 @@ const bgm = new Audio('Spaceship-Game-BGM.mp3');
 bgm.loop = true;
 bgm.volume = 0.8;
 
+// Auto-play Audio on first interaction
+let audioInitialized = false;
+window.addEventListener('click', () => {
+  if (!audioInitialized) {
+    bgm.play().catch(() => {});
+    audioInitialized = true;
+  }
+}, { once: true });
+
 function safePlaySound(src, volume = 0.5) {
   try {
     const snd = new Audio(src);
@@ -96,7 +105,7 @@ function loadImage(src) {
 
 const picture_ship = loadImage("SpaceShip-Blue.png");
 const picture_missile = loadImage("Missile-Picture.png");
-const picture_enemy = loadImage("enemies.tiff");
+const picture_enemy = loadImage("enemies.png"); // Converted or PNG fallback
 const picture_tank = loadImage("enemies-tank.png");
 const picture_boss = loadImage("boss-picture.png");
 const picture_boss_missile = loadImage("boss-missile.png");
@@ -1013,34 +1022,75 @@ function gameLoop() {
     ctx.fillStyle = "#00ff00"; ctx.font = "bold 28px Arial"; ctx.fillText(`Press ENTER to fly to Level ${level + 1}`, 200, 500);
 
   } else if (gameState === "PLAYING") {
-    // Draw Missiles
+
+    // HIGH ENERGY PLAYER LASERS
     missiles.forEach(m => {
-      if (picture_missile.complete && picture_missile.naturalWidth !== 0) ctx.drawImage(picture_missile, m.x, m.y, 15, 30);
-      else { ctx.fillStyle = "#ffff00"; ctx.fillRect(m.x, m.y, 4, 10); }
+      if (picture_missile.complete && picture_missile.naturalWidth !== 0) {
+        ctx.drawImage(picture_missile, m.x, m.y, 15, 30);
+      } else {
+        // High-energy laser rendering
+        ctx.save();
+        ctx.shadowColor = "#00ffff";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#00ffff";
+        ctx.fillRect(m.x - 2, m.y, 6, 22);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(m.x - 1, m.y + 2, 4, 18);
+        ctx.restore();
+      }
     });
 
-    // Draw Boss Missiles
+    // HIGH ENERGY BOSS / TANK LASERS
     bossMissiles.forEach(bm => {
-      if (picture_boss_missile.complete && picture_boss_missile.naturalWidth !== 0) ctx.drawImage(picture_boss_missile, bm.x, bm.y, 40, 80);
-      else { ctx.fillStyle = "#ff00ff"; ctx.fillRect(bm.x, bm.y, 8, 16); }
+      if (picture_boss_missile.complete && picture_boss_missile.naturalWidth !== 0) {
+        ctx.drawImage(picture_boss_missile, bm.x, bm.y, 40, 80);
+      } else {
+        ctx.save();
+        ctx.shadowColor = "#ff00ff";
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = "#ff00ff";
+        ctx.fillRect(bm.x - 4, bm.y, 10, 28);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(bm.x - 2, bm.y + 2, 6, 24);
+        ctx.restore();
+      }
     });
 
-    // Draw Basic Enemies using enemies.tiff
+    // Draw Basic Enemies with full graphics fallback
     enemies.forEach(e => {
-      if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) ctx.drawImage(picture_enemy, e.x, e.y, 20, 20);
-      else { ctx.fillStyle = "#ff0000"; ctx.beginPath(); ctx.arc(e.x + 10, e.y + 10, 10, 0, Math.PI * 2); ctx.fill(); }
+      if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
+        ctx.drawImage(picture_enemy, e.x, e.y, 20, 20);
+      } else {
+        ctx.save();
+        ctx.fillStyle = "#ff3333";
+        ctx.beginPath();
+        ctx.moveTo(e.x + 10, e.y + 20);
+        ctx.lineTo(e.x, e.y);
+        ctx.lineTo(e.x + 20, e.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
     });
 
-    // Draw Tank Enemies using enemies-tank.png
+    // Draw Tank Enemies
     if (!isBossStage) {
       tanks.forEach(t => {
-        if (picture_tank.complete && picture_tank.naturalWidth !== 0) ctx.drawImage(picture_tank, t.x, t.y, 60, 60);
-        else { ctx.fillStyle = "#00ff00"; ctx.fillRect(t.x, t.y, 60, 60); }
+        if (picture_tank.complete && picture_tank.naturalWidth !== 0) {
+          ctx.drawImage(picture_tank, t.x, t.y, 60, 60);
+        } else {
+          ctx.fillStyle = "#00ff66";
+          ctx.fillRect(t.x, t.y, 60, 60);
+        }
       });
     } else if (bossSpawned) {
       bosses.forEach(b => {
-        if (picture_boss.complete && picture_boss.naturalWidth !== 0) ctx.drawImage(picture_boss, b.x, b.y, 120, 120);
-        else { ctx.fillStyle = "#ff00ff"; ctx.fillRect(b.x, b.y, 120, 120); }
+        if (picture_boss.complete && picture_boss.naturalWidth !== 0) {
+          ctx.drawImage(picture_boss, b.x, b.y, 120, 120);
+        } else {
+          ctx.fillStyle = "#ff00ff";
+          ctx.fillRect(b.x, b.y, 120, 120);
+        }
 
         ctx.fillStyle = "#640000"; ctx.fillRect(b.x, b.y - 15, 120, 8);
         ctx.fillStyle = "#ff0000"; ctx.fillRect(b.x, b.y - 15, Math.max(0, (b.hp / b.maxHp) * 120), 8);
@@ -1054,10 +1104,25 @@ function gameLoop() {
       ctx.fill();
     });
 
-    // Draw Player Ship using SpaceShip-Blue.png
+    // Draw Ultimate Beam
+    if (ultimateActiveTimer > 0) {
+      ctx.save();
+      const beamColor = qModeActive ? "rgba(255, 0, 0, 0.8)" : "rgba(0, 191, 255, 0.8)";
+      const coreColor = qModeActive ? "rgba(255, 200, 200, 0.9)" : "rgba(200, 240, 255, 0.9)";
+      ctx.fillStyle = beamColor;
+      ctx.fillRect(shipX - 15, 0, 95, shipY);
+      ctx.fillStyle = coreColor;
+      ctx.fillRect(shipX + 5, 0, 55, shipY);
+      ctx.restore();
+    }
+
+    // Draw Player Ship
     if (dodgeTimer % 4 < 2) {
-      if (picture_ship.complete && picture_ship.naturalWidth !== 0) ctx.drawImage(picture_ship, shipX, shipY, 65, 70);
-      else { ctx.fillStyle = "#00bfff"; ctx.fillRect(shipX, shipY, 65, 70); }
+      if (picture_ship.complete && picture_ship.naturalWidth !== 0) {
+        ctx.drawImage(picture_ship, shipX, shipY, 65, 70);
+      } else {
+        ctx.fillStyle = "#00bfff"; ctx.fillRect(shipX, shipY, 65, 70);
+      }
     }
 
     // Draw Shields
