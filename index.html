@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Shooter: Ultimate Edition (Web)</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+    }
+    canvas {
+      background-color: #000;
+      display: block;
+      border: 2px solid #333;
+    }
+  </style>
+  <!-- Supabase JS Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
+
+<script>
+// ==========================================
+// 1. SUPABASE CONNECTION CONFIGURATION
+// ==========================================
+const SUPABASE_URL = "https://fidqfllnzxjcdpaiuykb.supabase.co";
+const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY"; // Paste your long eyJ... key here
+
+let supabase = null;
+try {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (err) {
+  console.error("Supabase init error:", err);
+}
+
+// ==========================================
+// 2. CANVAS & AUDIO INITIALIZATION
+// ==========================================
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const bgm = new Audio("Spaceship-Game-BGM.mp3");
+bgm.loop = true;
+bgm.volume = 0.8;
+
+function safePlaySound(src, volume = 0.5) {
+  try {
+    const snd = new Audio(src);
+    snd.volume = volume;
+    snd.play().catch(() => {});
+  } catch (e) {}
+}
+
+// ==========================================
+// 3. ASSET LOADING
+// ==========================================
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
+
+const picture_ship = loadImage("SpaceShip-Blue.png");
+const picture_missile = loadImage("Missile-Picture.png");
+const picture_enemy = loadImage("enemies.tiff");
+const picture_tank = loadImage("enemies-tank.png");
+const picture_boss = loadImage("boss-picture.png");
+const picture_boss_missile = loadImage("boss-missile.png");
+
+// ==========================================
+// 4. GAME VARIABLES
+// ==========================================
+let gameState = "AUTH"; // "AUTH", "PLAYING", "PAUSED", "SHOP", "GAMEOVER"
+let authMode = "LOGIN"; // "LOGIN" or "REGISTER"
+let activeField = "username";
+
+let inputUsername = "";
+let inputPassword = "";
+let inputEmail = "";
+let authMessage = "";
+let loggedInUser = null;
+let userBestScore = 0;
+
+let score = 0;
+let level = 1;
+let playerHealth = 3.0;
+let playerMaxHealth = 5.0;
+let shipX = 350;
+let shipY = 400;
+let shipSpeed = 5;
+let shieldCount = 0;
+let fireCooldown = 0;
+
+let dodgeTimer = 0;
+let dodgeCooldown = 0;
+let speedBoostTimer = 0;
+let speedBoostCooldown = 0;
+
+let comboCount = 0;
+let comboTimer = 0;
+let comboMultiplier = 1.0;
+
+let permShotTier = 1;
+let playerMissileSpeed = 7;
+
+let isBossStage = false;
+let bossSpawned = false;
+
+let missiles = [];
+let bossMissiles = [];
+let enemies = [];
+let tanks = [];
+let bosses = [];
+let powerups = [];
+let particles = [];
+let floatingTexts = [];
+let leaderboard = [];
+
+const WEAPON_UPGRADE_COSTS = { 2: 1000, 3: 2500, 4: 5000, 5: 10000, 6: 20000 };
+const WEAPON_TIER_NAMES = {
+  1: "Single Shot",
+  2: "Permanent Dual Shot",
+  3: "Permanent Trio Shot",
+  4: "Permanent Quad Shot",
+  5: "Permanent Penta Shot",
+  6: "Permanent Hexa Shot"
+};
+
+const keys = {};
+
+// Background Stars
+const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.4 + 0.4]);
+const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.6 + 1.2]);
+const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 1.0 + 2.5]);
+
+// ==========================================
+// 5. DATABASE AUTH & LEADERBOARD
+// ==========================================
+async function loadLeaderboard() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from("Player Info")
+      .select("high_score, username, level")
+      .order("high_score", { ascending: false })
+      .limit(5);
+
+    if (data) {
+      leaderboard = data.map(r => [r.high_score || 0, r.username || "Player", r.level || 1]);
+    }
+  } catch (e) {
+    console.error("Fetch error:", e);
+  }
+}
+
+async function handleRegister() {
+  if (!inputUsername || !inputPassword) {
+    authMessage = "Error: Username & Password required!";
+    return;
+  }
+  try {
+    const { data: existing } = await supabase.from("Player Info").select("*").eq("username", inputUsername);
+    if (existing && existing.length > 0) {
+      authMessage = "Error: Username taken!";
+      return;
+    }
+
+    await supabase.from("Player Info").insert([{
+      username: inputUsername,
+      password: inputPassword,
+      email: inputEmail,
+      high_score: 0,
+      score: 0,
+      level: 1
+    }]);
+
+    loggedInUser = inputUsername;
+    userBestScore = 0;
+    authMessage = "Success! Starting Game...";
+    resetGame();
+    gameState = "PLAYING";
+    bgm.play().catch(() => {});
+  } catch (err) {
+    authMessage = "Register Failed!";
+  }
+}
+
+async function handleLogin() {
+  if (!inputUsername || !inputPassword) {
+    authMessage = "Error: Username & Password required!";
+    return;
+  }
+  try {
+    const { data, error } = await supabase.from("Player Info")
+      .select("*")
+      .eq("username", inputUsername)
+      .eq("password", inputPassword);
+
+    if (data && data.length > 0) {
+      loggedInUser = data[0].username;
+      userBestScore = data[0].high_score || 0;
+      authMessage = "Login Successful!";
+      resetGame();
+      gameState = "PLAYING";
+      bgm.play().catch(() => {});
+    } else {
+      authMessage = "Error: Incorrect credentials.";
+    }
+  } catch (err) {
+    authMessage = "Login Failed!";
+  }
+}
+
+async function updateScoreInSupabase(finalScore, reachedLevel) {
+  if (!supabase || !loggedInUser) return;
+  const newHigh = Math.max(userBestScore, finalScore);
+  userBestScore = newHigh;
+
+  await supabase.from("Player Info")
+    .update({ score: finalScore, high_score: newHigh, level: reachedLevel })
+    .eq("username", loggedInUser);
+
+  loadLeaderboard();
+}
+
+loadLeaderboard();
+
+// ==========================================
+// 6. GAME FUNCTIONS
+// ==========================================
+function resetGame() {
+  score = 0;
+  level = 1;
+  playerHealth = 3.0;
+  shipX = 350;
+  shipY = 400;
+  shipSpeed = 5;
+  shieldCount = 0;
+  permShotTier = 1;
+  playerMissileSpeed = 7;
+  missiles = [];
+  bossMissiles = [];
+  tanks = [];
+  powerups = [];
+  particles = [];
+  floatingTexts = [];
+  isBossStage = false;
+  bossSpawned = false;
+  spawnStandardEnemies();
+}
+
+function spawnStandardEnemies() {
+  enemies = [];
+  for (let i = 0; i < 6; i++) {
+    enemies.push({
+      x: Math.random() * 700 + 50,
+      y: -Math.random() * 100 - 50,
+      vx: 0,
+      vy: Math.random() * 2 + 3,
+      hp: 1.0
+    });
+  }
+}
+
+function fireMissiles() {
+  safePlaySound("LaserSoundEffect.mp3", 0.25);
+  missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
+}
+
+// Key Listeners
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+
+  if (gameState === "AUTH") {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      if (authMode === "LOGIN") activeField = activeField === "username" ? "password" : "username";
+      else {
+        if (activeField === "username") activeField = "password";
+        else if (activeField === "password") activeField = "email";
+        else activeField = "username";
+      }
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      authMode = authMode === "LOGIN" ? "REGISTER" : "LOGIN";
+      authMessage = `Switched to ${authMode} mode.`;
+    } else if (e.key === "Enter") {
+      if (authMode === "LOGIN") handleLogin();
+      else handleRegister();
+    } else if (e.key === "Backspace") {
+      if (activeField === "username") inputUsername = inputUsername.slice(0, -1);
+      if (activeField === "password") inputPassword = inputPassword.slice(0, -1);
+      if (activeField === "email") inputEmail = inputEmail.slice(0, -1);
+    } else if (e.key.length === 1) {
+      if (activeField === "username" && inputUsername.length < 15) inputUsername += e.key;
+      if (activeField === "password" && inputPassword.length < 20) inputPassword += e.key;
+      if (activeField === "email" && inputEmail.length < 30) inputEmail += e.key;
+    }
+  } else if (gameState === "GAMEOVER" && e.key.toLowerCase() === "r") {
+    resetGame();
+    gameState = "PLAYING";
+  }
+});
+
+window.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
+
+// ==========================================
+// 7. MAIN UPDATE & DRAW LOOP
+// ==========================================
+function gameLoop() {
+  // Update Background Stars
+  for (let star of starsBack) { star[1] += star[2]; if (star[1] > 600) star[1] = 0; }
+  for (let star of starsMid) { star[1] += star[2]; if (star[1] > 600) star[1] = 0; }
+  for (let star of starsFore) { star[1] += star[2]; if (star[1] > 600) star[1] = 0; }
+
+  if (gameState === "PLAYING") {
+    // Movement
+    if (keys["ArrowLeft"] && shipX > 0) shipX -= shipSpeed;
+    if (keys["ArrowRight"] && shipX < 735) shipX += shipSpeed;
+    if (keys["ArrowUp"] && shipY > 0) shipY -= shipSpeed;
+    if (keys["ArrowDown"] && shipY < 530) shipY += shipSpeed;
+
+    if (keys[" "] && fireCooldown <= 0) {
+      fireMissiles();
+      fireCooldown = 10;
+    }
+    if (fireCooldown > 0) fireCooldown--;
+
+    // Update Missiles
+    missiles.forEach((m, idx) => {
+      m.y += m.vy;
+      if (m.y < -30) missiles.splice(idx, 1);
+    });
+
+    // Update Enemies
+    enemies.forEach((enemy, eIdx) => {
+      enemy.y += enemy.vy;
+      if (enemy.y > 650) {
+        enemy.y = -50;
+        enemy.x = Math.random() * 700 + 50;
+      }
+
+      // Check Collision with Missiles
+      missiles.forEach((m, mIdx) => {
+        if (Math.abs(m.x - enemy.x) < 25 && Math.abs(m.y - enemy.y) < 25) {
+          missiles.splice(mIdx, 1);
+          score += 10;
+          enemy.y = -50;
+          enemy.x = Math.random() * 700 + 50;
+          safePlaySound("ExplosionSoundEffect.mp3", 0.3);
+        }
+      });
+
+      // Collision with Player Ship
+      if (Math.abs(shipX + 32 - enemy.x) < 35 && Math.abs(shipY + 35 - enemy.y) < 35) {
+        playerHealth -= 0.5;
+        enemy.y = -50;
+        enemy.x = Math.random() * 700 + 50;
+        safePlaySound("ExplosionSoundEffect.mp3", 0.5);
+        if (playerHealth <= 0) {
+          updateScoreInSupabase(score, level);
+          gameState = "GAMEOVER";
+        }
+      }
+    });
+  }
+
+  // DRAW SCREEN
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, 800, 600);
+
+  // Draw Stars
+  ctx.fillStyle = "#666"; starsBack.forEach(s => ctx.fillRect(s[0], s[1], 1, 1));
+  ctx.fillStyle = "#aaa"; starsMid.forEach(s => ctx.fillRect(s[0], s[1], 2, 2));
+  ctx.fillStyle = "#fff"; starsFore.forEach(s => ctx.fillRect(s[0], s[1], 3, 3));
+
+  if (gameState === "AUTH") {
+    ctx.fillStyle = "#00bfff";
+    ctx.font = "bold 36px Arial";
+    ctx.fillText(`SPACE SHOOTER: ${authMode}`, 50, 60);
+
+    ctx.fillStyle = "#aaa";
+    ctx.font = "16px Arial";
+    ctx.fillText("[UP/DOWN]: Switch Mode | [TAB]: Change Field | [ENTER]: Submit", 50, 100);
+
+    ctx.fillStyle = activeField === "username" ? "#00ffff" : "#ccc";
+    ctx.fillText(`Username: ${inputUsername}${activeField === "username" ? "|" : ""}`, 50, 160);
+
+    ctx.fillStyle = activeField === "password" ? "#00ffff" : "#ccc";
+    ctx.fillText(`Password: ${"*".repeat(inputPassword.length)}${activeField === "password" ? "|" : ""}`, 50, 200);
+
+    if (authMode === "REGISTER") {
+      ctx.fillStyle = activeField === "email" ? "#00ffff" : "#ccc";
+      ctx.fillText(`Email: ${inputEmail}${activeField === "email" ? "|" : ""}`, 50, 240);
+    }
+
+    ctx.fillStyle = authMessage.includes("Error") ? "#ff4444" : "#44ff44";
+    ctx.fillText(authMessage, 50, 290);
+
+    // Leaderboard
+    ctx.fillStyle = "#ffd700";
+    ctx.fillText("🏆 SUPABASE LEADERBOARD 🏆", 450, 60);
+    leaderboard.forEach((entry, idx) => {
+      ctx.fillStyle = "#fff";
+      ctx.fillText(`${idx + 1}. ${entry[1]} - ${entry[0]} (Lvl ${entry[2]})`, 450, 100 + idx * 30);
+    });
+
+  } else if (gameState === "PLAYING") {
+    // Draw Ship
+    if (picture_ship.complete && picture_ship.naturalWidth !== 0) {
+      ctx.drawImage(picture_ship, shipX, shipY, 65, 70);
+    } else {
+      ctx.fillStyle = "#00bfff";
+      ctx.fillRect(shipX, shipY, 65, 70);
+    }
+
+    // Draw Missiles
+    missiles.forEach(m => {
+      if (picture_missile.complete && picture_missile.naturalWidth !== 0) {
+        ctx.drawImage(picture_missile, m.x, m.y, 15, 30);
+      } else {
+        ctx.fillStyle = "#ffff00";
+        ctx.fillRect(m.x, m.y, 4, 10);
+      }
+    });
+
+    // Draw Enemies
+    enemies.forEach(e => {
+      if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
+        ctx.drawImage(picture_enemy, e.x, e.y, 30, 30);
+      } else {
+        ctx.fillStyle = "#ff0000";
+        ctx.fillRect(e.x, e.y, 30, 30);
+      }
+    });
+
+    // Draw HUD
+    ctx.fillStyle = "#fff";
+    ctx.font = "18px Arial";
+    ctx.fillText(`Score: ${score}`, 10, 25);
+    ctx.fillText(`Pilot: ${loggedInUser}`, 10, 50);
+    ctx.fillText(`Health: ${playerHealth}/${playerMaxHealth}`, 10, 75);
+
+  } else if (gameState === "GAMEOVER") {
+    ctx.fillStyle = "#ff0000";
+    ctx.font = "bold 48px Arial";
+    ctx.fillText("GAME OVER", 50, 100);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px Arial";
+    ctx.fillText(`Final Score: ${score}`, 50, 160);
+    ctx.fillText("Press 'R' to Restart", 50, 220);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
