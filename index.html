@@ -857,13 +857,16 @@ function gameLoop(timestamp) {
       });
     }
 
+    // TIME SLOW / SPEED BOOST MULTIPLIER (SLOWS ENEMIES & MISSILES BY HALF)
+    const timeFactor = speedBoostTimer > 0 ? 0.4 : 1.0;
+
     missiles.forEach((m, mIdx) => {
       m.x += m.vx; m.y += m.vy;
       if (m.y < -30 || m.x < -30 || m.x > 830) missiles.splice(mIdx, 1);
     });
 
     bossMissiles.forEach((bm, bmIdx) => {
-      bm.x += bm.vx; bm.y += bm.vy;
+      bm.x += bm.vx * timeFactor; bm.y += bm.vy * timeFactor;
       if (bm.y > 640 || bm.x < -40 || bm.x > 840) bossMissiles.splice(bmIdx, 1);
     });
 
@@ -888,7 +891,7 @@ function gameLoop(timestamp) {
         }
       } else {
         laserStormProjectiles.forEach(lp => {
-          lp.x += lp.vx; lp.y += lp.vy;
+          lp.x += lp.vx * timeFactor; lp.y += lp.vy * timeFactor;
           if (lp.y > 620 || lp.x < -20 || lp.x > 820) {
             lp.x = Math.random() * 700 + 50; lp.y = -Math.random() * 120 - 30;
             lp.vx = (Math.random() - 0.5) * 6; lp.vy = Math.random() * 3 + 3;
@@ -900,11 +903,11 @@ function gameLoop(timestamp) {
     if (!isBossStage) {
       enemies.forEach((e, eIdx) => {
         if (e.type === "SINE") {
-          e.sinAngle += 0.08;
-          e.x += Math.sin(e.sinAngle) * 3;
-          e.y += e.vy;
+          e.sinAngle += 0.08 * timeFactor;
+          e.x += Math.sin(e.sinAngle) * 3 * timeFactor;
+          e.y += e.vy * timeFactor;
         } else {
-          e.x += e.vx; e.y += e.vy;
+          e.x += e.vx * timeFactor; e.y += e.vy * timeFactor;
         }
 
         if (e.y > 650 || (e.vx < 0 && e.x < -30) || (e.vx > 0 && e.x > 830)) {
@@ -913,7 +916,7 @@ function gameLoop(timestamp) {
       });
 
       tanks.forEach(tank => {
-        tank.y += tank.speed;
+        tank.y += tank.speed * timeFactor;
         tank.fireTimer++;
         if (tank.fireTimer >= 90 && tank.y > 0) {
           tank.fireTimer = 0;
@@ -927,9 +930,9 @@ function gameLoop(timestamp) {
       });
     } else if (bossSpawned) {
       bosses.forEach(b => {
-        if (b.y < b.targetY) b.y += 1.5;
+        if (b.y < b.targetY) b.y += 1.5 * timeFactor;
         else {
-          b.x += b.speed * b.dir;
+          b.x += b.speed * b.dir * timeFactor;
           if (b.x <= 20 || b.x >= 660) b.dir *= -1;
         }
 
@@ -950,7 +953,7 @@ function gameLoop(timestamp) {
     }
 
     powerups.forEach((p, pIdx) => {
-      p.y += powerupSpeed;
+      p.y += powerupSpeed * timeFactor;
       if (p.y > 650) powerups.splice(pIdx, 1);
     });
 
@@ -1148,8 +1151,12 @@ function gameLoop(timestamp) {
     if (WEAPON_UPGRADE_COSTS[nextTier]) ctx.fillText(`Press [6] UPGRADE WEAPONS -> ${WEAPON_TIER_NAMES[nextTier]} ----- Cost: ${WEAPON_UPGRADE_COSTS[nextTier]} Score`, 100, 370);
     else ctx.fillText("Press [6] UPGRADE WEAPONS -> MAX LEVEL REACHED", 100, 370);
 
-    ctx.fillStyle = "#64ff64"; ctx.fillText(`Stats: Speed: ${shipSpeed} | Gun Tier: ${WEAPON_TIER_NAMES[permShotTier]} | Missile Spd: ${playerMissileSpeed} | Shields: ${shieldCount}/2`, 100, 420);
-    ctx.fillStyle = "#00ff00"; ctx.font = "bold 28px Arial"; ctx.fillText(`Press ENTER to fly to Level ${level + 1}`, 200, 500);
+    ctx.fillStyle = "#00ffff"; ctx.font = "bold 15px Arial";
+    ctx.fillText("ABILITY KEYS: [C] Dodge Roll | [V / Ctrl] Time Slow / Speed Boost | [SHIFT] Ultimate Beam", 100, 410);
+
+    ctx.fillStyle = "#64ff64"; ctx.font = "16px Arial";
+    ctx.fillText(`Stats: Speed: ${shipSpeed} | Gun Tier: ${WEAPON_TIER_NAMES[permShotTier]} | Missile Spd: ${playerMissileSpeed} | Shields: ${shieldCount}/2`, 100, 450);
+    ctx.fillStyle = "#00ff00"; ctx.font = "bold 28px Arial"; ctx.fillText(`Press ENTER to fly to Level ${level + 1}`, 200, 520);
 
   } else if (gameState === "PLAYING") {
 
@@ -1263,12 +1270,23 @@ function gameLoop(timestamp) {
     particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); });
     floatingTexts.forEach(ft => { ctx.fillStyle = ft.color; ctx.font = "20px Arial"; ctx.fillText(ft.text, ft.x, ft.y); });
 
-    // HUD
+    // HUD TOP LEFT
     ctx.fillStyle = "#fff"; ctx.font = "20px Arial";
     ctx.fillText(`Score: ${score}`, 10, 25);
     ctx.fillStyle = "#32ff32"; ctx.fillText(`Level: ${level}`, 10, 50);
     ctx.fillStyle = "#00bfff"; ctx.fillText(`Pilot: ${loggedInUser}`, 10, 75);
     ctx.fillStyle = "#ffd700"; ctx.fillText(`Best: ${userBestScore}`, 10, 100);
+
+    // HUD BOTTOM LEFT: ABILITY COOLDOWNS & CONTROLS
+    ctx.font = "14px Arial";
+    ctx.fillStyle = dodgeCooldown > 0 ? "#888888" : "#00ffff";
+    ctx.fillText(`[C] Dodge: ${dodgeCooldown > 0 ? Math.ceil(dodgeCooldown / 60) + 's' : 'READY'}`, 10, 530);
+
+    ctx.fillStyle = speedBoostCooldown > 0 ? "#888888" : "#ff8c00";
+    ctx.fillText(`[V / Ctrl] Slow Time: ${speedBoostCooldown > 0 ? Math.ceil(speedBoostCooldown / 60) + 's' : 'READY'}`, 10, 550);
+
+    ctx.fillStyle = ultimateActiveTimer > 0 ? "#00ff00" : "#ff00ff";
+    ctx.fillText(`[SHIFT] Ultimate Beam: ${ultimateActiveTimer > 0 ? 'FIRING!' : 'READY'}`, 10, 570);
 
     // HEARTS
     for (let i = 0; i < 5; i++) {
