@@ -242,7 +242,7 @@ let anomalyType = "NONE";
 let laserStormProjectiles = [];
 let laserStormDuration = 0;
 
-let ultimateCharge = 100;
+let ultimateCharge = 0; // REQUIRES 100 TO FIRE
 let ultimateActiveTimer = 0;
 
 let isBossStage = false;
@@ -302,6 +302,12 @@ function addScore(pts) {
   const earned = Math.floor(pts * comboMultiplier);
   score += earned;
   return earned;
+}
+
+function addUltimateCharge(amount) {
+  if (ultimateCharge < 100) {
+    ultimateCharge = Math.min(100, ultimateCharge + amount);
+  }
 }
 
 function spawnFloatingText(x, y, text, color = "#ffd700") {
@@ -440,7 +446,7 @@ function resetGame() {
   shieldCount = 0;
   dualShotTimer = 0;
   trioShotTimer = 0;
-  ultimateCharge = 100;
+  ultimateCharge = 0;
   ultimateActiveTimer = 0;
   dodgeTimer = 0;
   dodgeCooldown = 0;
@@ -647,7 +653,7 @@ window.addEventListener("keydown", e => {
         score -= 120; playerHealth = Math.min(playerMaxHealth, playerHealth + 1.0); healSound(); boughtSound();
       }
     } else if (e.key === "4") {
-      if (score >= 150) { score -= 150; boughtSound(); }
+      if (score >= 150) { score -= 150; addUltimateCharge(50); boughtSound(); }
     } else if (e.key === "5") {
       if (score >= 250) { score -= 250; playerMissileSpeed++; boughtSound(); }
     } else if (e.key === "6") {
@@ -674,12 +680,14 @@ window.addEventListener("keydown", e => {
     }
   } else if (gameState === "PLAYING") {
     if (e.key.toLowerCase() === "c") {
-      if (dodgeCooldown <= 0) { dodgeTimer = 20; dodgeCooldown = 120; shieldSound(); }
+      if (dodgeCooldown <= 0) { dodgeTimer = 20; dodgeCooldown = 300; shieldSound(); }
     } else if (e.key.toLowerCase() === "v" || e.key === "Control") {
-      if (speedBoostCooldown <= 0) { speedBoostTimer = 180; speedBoostCooldown = 360; boughtSound(); }
+      if (speedBoostCooldown <= 0) { speedBoostTimer = 180; speedBoostCooldown = 480; boughtSound(); }
     } else if (e.key === "Shift") {
-      if (ultimateActiveTimer === 0) {
-        ultimateActiveTimer = 120; triggerShake(120, 10);
+      if (ultimateActiveTimer === 0 && ultimateCharge >= 100) {
+        ultimateActiveTimer = 120;
+        ultimateCharge = 0;
+        triggerShake(120, 10);
         if (currentMission === "ULTIMATE_USER") { score += 300; selectNewMission(); }
       }
     }
@@ -808,6 +816,7 @@ function gameLoop(timestamp) {
           if (enemy.hp <= 0) {
             spawnExplosion(enemy.x + 10, enemy.y + 10, 15);
             const pts = addScore(10);
+            addUltimateCharge(1);
             spawnFloatingText(enemy.x, enemy.y, `+${pts}`);
             enemies[eIdx] = getRandomScout();
           }
@@ -820,6 +829,7 @@ function gameLoop(timestamp) {
           if (tank.hp <= 0) {
             spawnExplosion(tank.x + 30, tank.y + 30, 25);
             const pts = addScore(50);
+            addUltimateCharge(5);
             spawnFloatingText(tank.x, tank.y, `+${pts}`);
             tanks.splice(tIdx, 1);
             if (currentMission === "SNIPER" || currentMission === "TANK_BUSTER") {
@@ -840,6 +850,7 @@ function gameLoop(timestamp) {
             if (b.hp <= 0) {
               spawnExplosion(b.x + 60, b.y + 60, 60);
               const pts = addScore(500);
+              addUltimateCharge(25);
               spawnFloatingText(b.x + 40, b.y, `+${pts}`);
               bosses.splice(bIdx, 1);
               if (bosses.length === 0) gameState = "SHOP";
@@ -981,6 +992,7 @@ function gameLoop(timestamp) {
           triggerShake(8, 3);
           if (enemy.hp <= 0) {
             const pts = addScore(10);
+            addUltimateCharge(1);
             spawnFloatingText(enemy.x, enemy.y, `+${pts}`);
             if (Math.random() < 0.25) {
               const types = ["shield", "dual", "trio", "health"];
@@ -1013,6 +1025,7 @@ function gameLoop(timestamp) {
               spawnExplosion(tank.x + 30, tank.y + 30, 25);
               triggerShake(20, 12);
               const pts = addScore(50);
+              addUltimateCharge(5);
               spawnFloatingText(tank.x, tank.y, `+${pts}`);
 
               if (currentMission === "SNIPER" || currentMission === "TANK_BUSTER") {
@@ -1039,6 +1052,7 @@ function gameLoop(timestamp) {
             if (b.hp <= 0) {
               spawnExplosion(b.x + 60, b.y + 60, 60);
               const pts = addScore(500);
+              addUltimateCharge(25);
               spawnFloatingText(b.x + 40, b.y, `+${pts}`);
               bosses.splice(bIdx, 1);
               if (bosses.length === 0) gameState = "SHOP";
@@ -1143,7 +1157,7 @@ function gameLoop(timestamp) {
     ctx.fillText("Press [1] Upgrade Engine Speed (+1 Speed) ----------- Cost: 150 Score", 100, 170);
     ctx.fillText("Press [2] Recharge Shield Battery (+1 Shield) -------- Cost: 100 Score", 100, 210);
     ctx.fillText("Press [3] Buy Hull Repairs (+1 Heart) --------------- Cost: 120 Score", 100, 250);
-    ctx.fillStyle = "#00ff96"; ctx.fillText("Press [4] Instant Ultimate Booster (+50% Charge) ----- Cost: 150 Score", 100, 290);
+    ctx.fillStyle = "#00ff96"; ctx.fillText("Press [4] Instant Ultimate Booster (+50 Charge) ------ Cost: 150 Score", 100, 290);
     ctx.fillStyle = "#ff9632"; ctx.fillText("Press [5] Upgrade Projectile Velocity (+1 Missile Speed) - Cost: 250 Score", 100, 330);
 
     const nextTier = permShotTier + 1;
@@ -1277,16 +1291,17 @@ function gameLoop(timestamp) {
     ctx.fillStyle = "#00bfff"; ctx.fillText(`Pilot: ${loggedInUser}`, 10, 75);
     ctx.fillStyle = "#ffd700"; ctx.fillText(`Best: ${userBestScore}`, 10, 100);
 
-    // HUD BOTTOM LEFT: ABILITY COOLDOWNS & CONTROLS
+    // HUD BOTTOM LEFT: ABILITY COOLDOWNS & ULTIMATE CHARGE
     ctx.font = "14px Arial";
     ctx.fillStyle = dodgeCooldown > 0 ? "#888888" : "#00ffff";
-    ctx.fillText(`[C] Dodge: ${dodgeCooldown > 0 ? Math.ceil(dodgeCooldown / 60) + 's' : 'READY'}`, 10, 530);
+    ctx.fillText(`[C] Dodge: ${dodgeCooldown > 0 ? Math.ceil(dodgeCooldown / 60) + 's' : 'READY'}`, 10, 520);
 
     ctx.fillStyle = speedBoostCooldown > 0 ? "#888888" : "#ff8c00";
-    ctx.fillText(`[V / Ctrl] Slow Time: ${speedBoostCooldown > 0 ? Math.ceil(speedBoostCooldown / 60) + 's' : 'READY'}`, 10, 550);
+    ctx.fillText(`[V / Ctrl] Slow Time: ${speedBoostCooldown > 0 ? Math.ceil(speedBoostCooldown / 60) + 's' : 'READY'}`, 10, 540);
 
-    ctx.fillStyle = ultimateActiveTimer > 0 ? "#00ff00" : "#ff00ff";
-    ctx.fillText(`[SHIFT] Ultimate Beam: ${ultimateActiveTimer > 0 ? 'FIRING!' : 'READY'}`, 10, 570);
+    const ultStatusStr = ultimateActiveTimer > 0 ? 'FIRING!' : ultimateCharge >= 100 ? 'READY [PRESS SHIFT]' : `${ultimateCharge}/100 Charge (${Math.ceil(100 - ultimateCharge)} kills needed)`;
+    ctx.fillStyle = ultimateActiveTimer > 0 ? "#00ff00" : ultimateCharge >= 100 ? "#ff00ff" : "#888888";
+    ctx.fillText(`[SHIFT] Ultimate Beam: ${ultStatusStr}`, 10, 560);
 
     // HEARTS
     for (let i = 0; i < 5; i++) {
