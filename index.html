@@ -767,7 +767,6 @@ function gameLoop(timestamp) {
       isBossStage = true;
       if (!bossSpawned) {
         bosses = [];
-        // MODIFIED: Adds an extra boss every 5 boss fights (50 levels) instead of every 10 levels
         const bossFightCount = Math.floor(level / 10);
         const numBosses = Math.floor((bossFightCount - 1) / 5) + 1;
         
