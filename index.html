@@ -206,17 +206,11 @@ let shipX = 350;
 let shipY = 400;
 let shipSpeed = 6;
 let playerMissileSpeed = 9;
-let savedSpeed = 6;
-let savedMissileSpeed = 9;
 
 let shieldCount = 0;
 let dualShotTimer = 0;
 let trioShotTimer = 0;
 let fireCooldown = 0;
-
-let cheat100Bullets = false;
-let cheatGodmode = false;
-let cheatMoney = false;
 
 let dodgeTimer = 0;
 let dodgeCooldown = 0;
@@ -250,7 +244,6 @@ let laserStormDuration = 0;
 
 let ultimateCharge = 100;
 let ultimateActiveTimer = 0;
-let qModeActive = false;
 
 let isBossStage = false;
 let bossSpawned = false;
@@ -437,25 +430,18 @@ function spawnStandardEnemies() {
 }
 
 function resetGame() {
-  cheat100Bullets = false;
-  cheatGodmode = false;
-  cheatMoney = false;
-
   score = 0;
   playerHealth = 3.0;
   shipX = 350;
   shipY = 400;
   shipSpeed = 6;
   playerMissileSpeed = 9;
-  savedSpeed = 6;
-  savedMissileSpeed = 9;
   permShotTier = 1;
   shieldCount = 0;
   dualShotTimer = 0;
   trioShotTimer = 0;
   ultimateCharge = 100;
   ultimateActiveTimer = 0;
-  qModeActive = false;
   dodgeTimer = 0;
   dodgeCooldown = 0;
   speedBoostTimer = 0;
@@ -487,17 +473,6 @@ function resetGame() {
 
 function fireMissiles() {
   laserSound();
-  if (qModeActive || cheat100Bullets) {
-    for (let i = 0; i < 50; i++) {
-      missiles.push({
-        x: shipX + 25,
-        y: shipY,
-        vx: (Math.random() - 0.5) * 16,
-        vy: -(Math.random() * playerMissileSpeed + 5)
-      });
-    }
-    return;
-  }
 
   let tempBoost = 1;
   if (trioShotTimer > 0) tempBoost = 3;
@@ -654,23 +629,6 @@ window.addEventListener("keydown", e => {
     }
   } else if (e.key === "Escape" && (gameState === "PLAYING" || gameState === "PAUSED")) {
     gameState = gameState === "PLAYING" ? "PAUSED" : "PLAYING";
-  } else if (gameState === "PLAYING" || gameState === "SHOP") {
-    if (e.key.toLowerCase() === "p") {
-      cheatGodmode = !cheatGodmode;
-      if (cheatGodmode) {
-        savedSpeed = shipSpeed;
-        savedMissileSpeed = playerMissileSpeed;
-        shipSpeed = 16;
-        playerMissileSpeed = 20;
-        playerHealth = playerMaxHealth;
-        shieldCount = 2;
-      } else {
-        shipSpeed = savedSpeed;
-        playerMissileSpeed = savedMissileSpeed;
-      }
-    } else if (e.key.toLowerCase() === "o") {
-      cheatMoney = !cheatMoney;
-    }
   }
 
   if (gameState === "GAMEOVER" && e.key.toLowerCase() === "r") {
@@ -678,7 +636,7 @@ window.addEventListener("keydown", e => {
     gameState = "PLAYING";
   } else if (gameState === "SHOP") {
     if (e.key === "1") {
-      if (score >= 150) { score -= 150; shipSpeed++; savedSpeed++; boughtSound(); }
+      if (score >= 150) { score -= 150; shipSpeed++; boughtSound(); }
     } else if (e.key === "2") {
       if (score >= 100 && shieldCount < 2) {
         score -= 100; shieldCount++; shieldSound(); boughtSound();
@@ -691,7 +649,7 @@ window.addEventListener("keydown", e => {
     } else if (e.key === "4") {
       if (score >= 150) { score -= 150; boughtSound(); }
     } else if (e.key === "5") {
-      if (score >= 250) { score -= 250; playerMissileSpeed++; savedMissileSpeed++; boughtSound(); }
+      if (score >= 250) { score -= 250; playerMissileSpeed++; boughtSound(); }
     } else if (e.key === "6") {
       const nextTier = permShotTier + 1;
       if (WEAPON_UPGRADE_COSTS[nextTier]) {
@@ -719,8 +677,6 @@ window.addEventListener("keydown", e => {
       if (dodgeCooldown <= 0) { dodgeTimer = 20; dodgeCooldown = 120; shieldSound(); }
     } else if (e.key.toLowerCase() === "v" || e.key === "Control") {
       if (speedBoostCooldown <= 0) { speedBoostTimer = 180; speedBoostCooldown = 360; boughtSound(); }
-    } else if (e.key.toLowerCase() === "q") {
-      qModeActive = !qModeActive;
     } else if (e.key === "Shift") {
       if (ultimateActiveTimer === 0) {
         ultimateActiveTimer = 120; triggerShake(120, 10);
@@ -749,9 +705,6 @@ function gameLoop(timestamp) {
 
   lastTime = timestamp - (elapsed % fpsInterval);
 
-  if (cheatGodmode) { playerHealth = playerMaxHealth; shieldCount = 2; }
-  if (cheatMoney) { score += 9999; }
-
   for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.3; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
   for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.5; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
   for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 0.8; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
@@ -779,7 +732,7 @@ function gameLoop(timestamp) {
 
     if (keys[" "] && fireCooldown <= 0) {
       fireMissiles();
-      fireCooldown = (qModeActive || cheat100Bullets) ? 5 : 10;
+      fireCooldown = 10;
     }
 
     const maxBottomY = 780;
@@ -845,7 +798,7 @@ function gameLoop(timestamp) {
     // ULTIMATE BEAM
     if (ultimateActiveTimer > 0) {
       ultimateActiveTimer--;
-      const beamDamage = qModeActive ? 1.5 : 0.5;
+      const beamDamage = 0.5;
 
       enemies.forEach((enemy, eIdx) => {
         if (enemy.x > shipX - 15 && enemy.x < shipX + 80) {
@@ -983,7 +936,7 @@ function gameLoop(timestamp) {
     if (dualShotTimer > 0) dualShotTimer--;
     if (trioShotTimer > 0) trioShotTimer--;
 
-    const isInvincible = dodgeTimer > 0 || cheatGodmode;
+    const isInvincible = dodgeTimer > 0;
 
     // COLLISION LOGIC FOR ENEMIES & TANKS WITH DESTRUCTIBLE HP
     enemies.forEach((enemy, eIdx) => {
@@ -1195,11 +1148,11 @@ function gameLoop(timestamp) {
       }
     });
 
-    // FIXED: ROTATED BOSS & TANK LASERS FACING DOWN
+    // BOSS & TANK LASERS
     bossMissiles.forEach(bm => {
       ctx.save();
       ctx.translate(bm.x + 20, bm.y + 40);
-      ctx.rotate(Math.PI / 2); // Rotate 90 degrees clockwise to point down
+      ctx.rotate(Math.PI / 2);
 
       if (picture_boss_missile.complete && picture_boss_missile.naturalWidth !== 0) {
         ctx.drawImage(picture_boss_missile, -40, -20, 80, 40);
@@ -1254,11 +1207,9 @@ function gameLoop(timestamp) {
     // ULTIMATE BEAM
     if (ultimateActiveTimer > 0) {
       ctx.save();
-      const beamColor = qModeActive ? "rgba(255, 0, 0, 0.8)" : "rgba(0, 191, 255, 0.8)";
-      const coreColor = qModeActive ? "rgba(255, 200, 200, 0.9)" : "rgba(200, 240, 255, 0.9)";
-      ctx.fillStyle = beamColor;
+      ctx.fillStyle = "rgba(0, 191, 255, 0.8)";
       ctx.fillRect(shipX - 15, 0, 95, shipY);
-      ctx.fillStyle = coreColor;
+      ctx.fillStyle = "rgba(200, 240, 255, 0.9)";
       ctx.fillRect(shipX + 5, 0, 55, shipY);
       ctx.restore();
     }
