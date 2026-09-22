@@ -917,8 +917,9 @@ function gameLoop(timestamp) {
           b.fireTimer = 0;
           b.patternAngle += 0.2;
           const bSpd = 4.5 + levelSpeedMultiplier;
-          for (let offset = 0; offset < 25; offset++) {
-            const ang = b.patternAngle + (offset * (2 * Math.PI / 25));
+          // MODIFIED: Reduced from 25 to 15 missiles per burst
+          for (let offset = 0; offset < 15; offset++) {
+            const ang = b.patternAngle + (offset * (2 * Math.PI / 15));
             bossMissiles.push({
               x: b.x + 60, y: b.y + 60,
               vx: Math.cos(ang) * bSpd, vy: Math.sin(ang) * bSpd
