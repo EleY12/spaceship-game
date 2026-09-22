@@ -847,6 +847,14 @@ function gameLoop(timestamp) {
           }
         });
       }
+
+      // ULTIMATE BEAM ALSO WIPES ENEMY MISSILES
+      bossMissiles.forEach((bm, bmIdx) => {
+        if (bm.x + 20 > shipX - 15 && bm.x < shipX + 80) {
+          spawnExplosion(bm.x + 20, bm.y + 20, 6, ["#ff00ff", "#00ffff"]);
+          bossMissiles.splice(bmIdx, 1);
+        }
+      });
     }
 
     missiles.forEach((m, mIdx) => {
@@ -857,6 +865,17 @@ function gameLoop(timestamp) {
     bossMissiles.forEach((bm, bmIdx) => {
       bm.x += bm.vx; bm.y += bm.vy;
       if (bm.y > 640 || bm.x < -40 || bm.x > 840) bossMissiles.splice(bmIdx, 1);
+    });
+
+    // COLLISION LOGIC: PLAYER MISSILES vs ENEMY MISSILES (MISSILE DESTRUCTION)
+    missiles.forEach((m, mIdx) => {
+      bossMissiles.forEach((bm, bmIdx) => {
+        if (Math.abs(m.x - (bm.x + 20)) < 25 && Math.abs(m.y - (bm.y + 20)) < 25) {
+          spawnExplosion(bm.x + 20, bm.y + 20, 8, ["#ff00ff", "#ffffff"]);
+          missiles.splice(mIdx, 1);
+          bossMissiles.splice(bmIdx, 1);
+        }
+      });
     });
 
     if (anomalyType === "LASER_STORM") {
@@ -1169,13 +1188,24 @@ function gameLoop(timestamp) {
       ctx.restore();
     });
 
-    // ENEMIES
+    // ENEMIES (WITH ROTATION FOR SIDEWAYS MOVEMENT)
     enemies.forEach(e => {
-      if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
-        ctx.drawImage(picture_enemy, e.x, e.y, 20, 20);
-      } else {
-        drawFallbackEnemy(e.x, e.y);
+      ctx.save();
+      ctx.translate(e.x + 10, e.y + 10);
+
+      // Rotate if moving horizontally
+      if (e.vx > 0) {
+        ctx.rotate(Math.PI / 2); // Facing right
+      } else if (e.vx < 0) {
+        ctx.rotate(-Math.PI / 2); // Facing left
       }
+
+      if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
+        ctx.drawImage(picture_enemy, -10, -10, 20, 20);
+      } else {
+        drawFallbackEnemy(-10, -10);
+      }
+      ctx.restore();
     });
 
     if (!isBossStage) {
