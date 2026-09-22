@@ -109,7 +109,6 @@ const picture_tank = loadImage("enemies-tank.png");
 const picture_boss = loadImage("boss-picture.png");
 const picture_boss_missile = loadImage("boss-missile.png");
 
-// VECTOR SPRITE FALLBACK DRAWING FUNCTIONS
 function drawFallbackShip(x, y) {
   ctx.save();
   ctx.shadowColor = "#00ffff";
@@ -205,10 +204,10 @@ let playerMaxHealth = 5.0;
 
 let shipX = 350;
 let shipY = 400;
-let shipSpeed = 5;
-let playerMissileSpeed = 7;
-let savedSpeed = 5;
-let savedMissileSpeed = 7;
+let shipSpeed = 4;
+let playerMissileSpeed = 6;
+let savedSpeed = 4;
+let savedMissileSpeed = 6;
 
 let shieldCount = 0;
 let dualShotTimer = 0;
@@ -268,14 +267,13 @@ let leaderboard = [];
 
 let shakeIntensity = 0;
 let shakeTimer = 0;
-let powerupSpeed = 3;
+let powerupSpeed = 2;
 
 const keys = {};
 
-// Background Stars
-const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.4 + 0.4]);
-const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.6 + 1.2]);
-const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 1.0 + 2.5]);
+const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.2 + 0.2]);
+const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.4 + 0.6]);
+const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.8 + 1.2]);
 
 // ==========================================
 // 5. HELPER FUNCTIONS & MISSION SYSTEM
@@ -292,8 +290,8 @@ function spawnExplosion(x, y, count = 15, colorSet = null) {
     particles.push({
       x: x,
       y: y,
-      vx: (Math.random() - 0.5) * 8,
-      vy: (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 5,
+      vy: (Math.random() - 0.5) * 5,
       life: Math.floor(Math.random() * 20) + 20,
       color: colorSet[Math.floor(Math.random() * colorSet.length)]
     });
@@ -343,7 +341,7 @@ function drawPixelHeart(x, y, size = 24, full = true, half = false) {
 }
 
 function getRandomScout(hp = 1.0) {
-  const speedBonus = levelSpeedMultiplier;
+  const speedBonus = levelSpeedMultiplier * 0.5;
   const roll = Math.random();
   let enemyX, enemyY, speedX, speedY, typeStr;
 
@@ -351,12 +349,12 @@ function getRandomScout(hp = 1.0) {
     enemyX = Math.random() * 700 + 50;
     enemyY = -Math.random() * 100 - 50;
     speedX = 0;
-    speedY = Math.random() * 2 + 3 + speedBonus;
+    speedY = Math.random() * 1.5 + 1.5 + speedBonus;
     typeStr = "SINE";
   } else if (roll < 0.70) {
     enemyX = Math.random() < 0.5 ? -20 : 820;
     enemyY = Math.random() * 250 + 50;
-    speedX = Math.random() * 3 + 3 + speedBonus;
+    speedX = Math.random() * 2 + 1.5 + speedBonus;
     if (enemyX > 0) speedX = -speedX;
     speedY = 0;
     typeStr = "STANDARD";
@@ -364,7 +362,7 @@ function getRandomScout(hp = 1.0) {
     enemyX = Math.random() * 780;
     enemyY = -Math.random() * 100 - 50;
     speedX = 0;
-    speedY = Math.random() * 3 + 4 + speedBonus;
+    speedY = Math.random() * 2 + 2 + speedBonus;
     typeStr = "STANDARD";
   }
   return { x: enemyX, y: enemyY, vx: speedX, vy: speedY, type: typeStr, sinAngle: 0, hp: hp };
@@ -378,8 +376,8 @@ function triggerLaserStorm() {
     laserStormProjectiles.push({
       x: Math.random() * 600 + 100,
       y: -Math.random() * 150 - 50,
-      vx: (Math.random() - 0.5) * 8,
-      vy: Math.random() * 3 + 4
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 2 + 2
     });
   }
 }
@@ -422,7 +420,7 @@ function spawnStandardEnemies() {
     tanks.push({
       x: Math.random() * 740,
       y: -Math.random() * 400 - 100,
-      speed: Math.random() * 2 + 1 + levelSpeedMultiplier,
+      speed: Math.random() * 1 + 0.8 + levelSpeedMultiplier * 0.3,
       hp: 3,
       fireTimer: 0
     });
@@ -447,10 +445,10 @@ function resetGame() {
   playerHealth = 3.0;
   shipX = 350;
   shipY = 400;
-  shipSpeed = 5;
-  playerMissileSpeed = 7;
-  savedSpeed = 5;
-  savedMissileSpeed = 7;
+  shipSpeed = 4;
+  playerMissileSpeed = 6;
+  savedSpeed = 4;
+  savedMissileSpeed = 6;
   permShotTier = 1;
   shieldCount = 0;
   dualShotTimer = 0;
@@ -494,8 +492,8 @@ function fireMissiles() {
       missiles.push({
         x: shipX + 25,
         y: shipY,
-        vx: (Math.random() - 0.5) * 24,
-        vy: -(Math.random() * playerMissileSpeed + 5)
+        vx: (Math.random() - 0.5) * 12,
+        vy: -(Math.random() * playerMissileSpeed + 4)
       });
     }
     return;
@@ -514,26 +512,26 @@ function fireMissiles() {
     missiles.push({ x: shipX + 40, y: shipY, vx: 0, vy: -playerMissileSpeed });
   } else if (activeTier === 3) {
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 10, y: shipY, vx: -2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 40, y: shipY, vx: 2, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 10, y: shipY, vx: -1.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 40, y: shipY, vx: 1.5, vy: -playerMissileSpeed });
   } else if (activeTier === 4) {
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -3, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 3, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -2, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 2, vy: -playerMissileSpeed });
   } else if (activeTier === 5) {
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 15, y: shipY, vx: -2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 35, y: shipY, vx: 2, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -4, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 4, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 15, y: shipY, vx: -1.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 35, y: shipY, vx: 1.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -3, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 3, vy: -playerMissileSpeed });
   } else if (activeTier >= 6) {
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 5, y: shipY, vx: -3, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 45, y: shipY, vx: 3, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX - 5, y: shipY, vx: -5, vy: -playerMissileSpeed });
-    missiles.push({ x: shipX + 55, y: shipY, vx: 5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 5, y: shipY, vx: -2, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 45, y: shipY, vx: 2, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX - 5, y: shipY, vx: -3.5, vy: -playerMissileSpeed });
+    missiles.push({ x: shipX + 55, y: shipY, vx: 3.5, vy: -playerMissileSpeed });
   }
 }
 
@@ -662,8 +660,8 @@ window.addEventListener("keydown", e => {
       if (cheatGodmode) {
         savedSpeed = shipSpeed;
         savedMissileSpeed = playerMissileSpeed;
-        shipSpeed = 20;
-        playerMissileSpeed = 25;
+        shipSpeed = 12;
+        playerMissileSpeed = 16;
         playerHealth = playerMaxHealth;
         shieldCount = 2;
       } else {
@@ -707,7 +705,7 @@ window.addEventListener("keydown", e => {
       }
     } else if (e.key === "Enter") {
       level++;
-      levelSpeedMultiplier += 0.2;
+      levelSpeedMultiplier += 0.1;
       scoreNeededForNextLevel = score + 150;
       isBossStage = false;
       bossSpawned = false;
@@ -735,15 +733,28 @@ window.addEventListener("keydown", e => {
 window.addEventListener("keyup", e => { keys[e.key] = false; });
 
 // ==========================================
-// 8. MAIN ENGINE & RENDER LOOP
+// 8. MAIN ENGINE & 60 FPS DELTA TIME LOCK
 // ==========================================
-function gameLoop() {
+let lastTime = 0;
+const fps = 60;
+const fpsInterval = 1000 / fps;
+
+function gameLoop(timestamp) {
+  requestAnimationFrame(gameLoop);
+
+  if (!lastTime) lastTime = timestamp;
+  const elapsed = timestamp - lastTime;
+
+  if (elapsed < fpsInterval) return; // Skip extra frames on high Hz monitors
+
+  lastTime = timestamp - (elapsed % fpsInterval);
+
   if (cheatGodmode) { playerHealth = playerMaxHealth; shieldCount = 2; }
   if (cheatMoney) { score += 9999; }
 
-  for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.3; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
-  for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.6; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
-  for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 1.0; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.2; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.4; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+  for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 0.6; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
 
   if (gameState === "PLAYING") {
     if (fireCooldown > 0) fireCooldown--;
@@ -758,8 +769,8 @@ function gameLoop() {
     }
 
     let currentSpd = shipSpeed;
-    if (speedBoostTimer > 0) currentSpd *= 2;
-    if (dodgeTimer > 0) currentSpd *= 1.8;
+    if (speedBoostTimer > 0) currentSpd *= 1.5;
+    if (dodgeTimer > 0) currentSpd *= 1.4;
 
     if (keys["ArrowLeft"]) shipX -= currentSpd;
     if (keys["ArrowRight"]) shipX += currentSpd;
@@ -768,7 +779,7 @@ function gameLoop() {
 
     if (keys[" "] && fireCooldown <= 0) {
       fireMissiles();
-      fireCooldown = (qModeActive || cheat100Bullets) ? 5 : 10;
+      fireCooldown = (qModeActive || cheat100Bullets) ? 6 : 14;
     }
 
     const maxBottomY = 780;
@@ -787,7 +798,7 @@ function gameLoop() {
         x: shipX + 32,
         y: shipY + 65,
         vx: (Math.random() - 0.5) * 2,
-        vy: Math.random() * 3 + 2,
+        vy: Math.random() * 2 + 1,
         life: 15,
         color: speedBoostTimer > 0 ? "#00ffff" : "#ff8c00"
       });
@@ -805,7 +816,7 @@ function gameLoop() {
         bosses = [];
         const numBosses = Math.floor(level / 10);
         const bossMaxHp = 20 + numBosses * 15;
-        const bossSpd = 2 + levelSpeedMultiplier;
+        const bossSpd = 1.2 + levelSpeedMultiplier;
 
         for (let idx = 0; idx < numBosses; idx++) {
           bosses.push({
@@ -826,7 +837,7 @@ function gameLoop() {
     } else {
       isBossStage = false; bossSpawned = false; bosses = [];
       if (score >= scoreNeededForNextLevel) {
-        level++; levelSpeedMultiplier += 0.2; scoreNeededForNextLevel += 150;
+        level++; levelSpeedMultiplier += 0.1; scoreNeededForNextLevel += 150;
         levelupSound(); spawnStandardEnemies();
       }
     }
@@ -906,7 +917,7 @@ function gameLoop() {
           lp.x += lp.vx; lp.y += lp.vy;
           if (lp.y > 620 || lp.x < -20 || lp.x > 820) {
             lp.x = Math.random() * 700 + 50; lp.y = -Math.random() * 120 - 30;
-            lp.vx = (Math.random() - 0.5) * 8; lp.vy = Math.random() * 3 + 4;
+            lp.vx = (Math.random() - 0.5) * 4; lp.vy = Math.random() * 2 + 2;
           }
         });
       }
@@ -915,8 +926,8 @@ function gameLoop() {
     if (!isBossStage) {
       enemies.forEach((e, eIdx) => {
         if (e.type === "SINE") {
-          e.sinAngle += 0.1;
-          e.x += Math.sin(e.sinAngle) * 4;
+          e.sinAngle += 0.05;
+          e.x += Math.sin(e.sinAngle) * 2;
           e.y += e.vy;
         } else {
           e.x += e.vx; e.y += e.vy;
@@ -930,29 +941,29 @@ function gameLoop() {
       tanks.forEach(tank => {
         tank.y += tank.speed;
         tank.fireTimer++;
-        if (tank.fireTimer >= 90 && tank.y > 0) {
+        if (tank.fireTimer >= 120 && tank.y > 0) {
           tank.fireTimer = 0;
-          bossMissiles.push({ x: tank.x + 10, y: tank.y + 60, vx: 0, vy: 6 + levelSpeedMultiplier });
+          bossMissiles.push({ x: tank.x + 10, y: tank.y + 60, vx: 0, vy: 4 + levelSpeedMultiplier });
           tankShootSound();
         }
         if (tank.y > 650) {
           tank.x = Math.random() * 740; tank.y = -Math.random() * 200 - 100;
-          tank.speed = Math.random() * 2 + 1 + levelSpeedMultiplier; tank.hp = 3; tank.fireTimer = 0;
+          tank.speed = Math.random() * 1 + 0.8 + levelSpeedMultiplier * 0.3; tank.hp = 3; tank.fireTimer = 0;
         }
       });
     } else if (bossSpawned) {
       bosses.forEach(b => {
-        if (b.y < b.targetY) b.y += 2;
+        if (b.y < b.targetY) b.y += 1;
         else {
           b.x += b.speed * b.dir;
           if (b.x <= 20 || b.x >= 660) b.dir *= -1;
         }
 
         b.fireTimer++;
-        if (b.fireTimer >= 60) {
+        if (b.fireTimer >= 80) {
           b.fireTimer = 0;
           b.patternAngle += 0.2;
-          const bSpd = 5 + levelSpeedMultiplier;
+          const bSpd = 3.5 + levelSpeedMultiplier;
           for (let offset = 0; offset < 25; offset++) {
             const ang = b.patternAngle + (offset * (2 * Math.PI / 25));
             bossMissiles.push({
@@ -1004,7 +1015,6 @@ function gameLoop() {
       });
     });
 
-    // TANK COLLISION & DESTRUCTION BY PLAYER MISSILES
     if (!isBossStage) {
       tanks.forEach((tank, tIdx) => {
         if (Math.abs(shipX + 32 - tank.x - 30) < 45 && Math.abs(shipY + 35 - tank.y - 30) < 45) {
@@ -1041,7 +1051,6 @@ function gameLoop() {
       });
     }
 
-    // BOSS PLAYER MISSILE COLLISIONS
     if (isBossStage && bossSpawned) {
       bosses.forEach((b, bIdx) => {
         missiles.forEach((m, mIdx) => {
@@ -1062,7 +1071,6 @@ function gameLoop() {
       });
     }
 
-    // BOSS MISSILE COLLISIONS WITH SHIELD ABSORPTION
     bossMissiles.forEach((bm, bmIdx) => {
       if (Math.abs(shipX + 32 - bm.x - 20) < 40 && Math.abs(shipY + 35 - bm.y - 40) < 40) {
         spawnExplosion(bm.x + 20, bm.y + 40, 10, ["#9370db", "#ff00ff"]);
@@ -1290,7 +1298,6 @@ function gameLoop() {
   }
 
   ctx.restore();
-  requestAnimationFrame(gameLoop);
 }
 
 requestAnimationFrame(gameLoop);
