@@ -61,7 +61,7 @@ const ctx = canvas.getContext("2d");
 
 const bgm = new Audio('Spaceship-Game-BGM.mp3');
 bgm.loop = true;
-bgm.volume = 0.8;
+bgm.volume = 0.45;
 
 let audioInitialized = false;
 window.addEventListener('click', () => {
@@ -79,13 +79,13 @@ function safePlaySound(src, volume = 0.5) {
   } catch (e) {}
 }
 
-const explosionSound = () => safePlaySound('ExplosionSoundEffect.mp3', 0.5);
-const levelupSound = () => safePlaySound('LevelUp.mp3', 0.5);
-const healSound = () => safePlaySound('HealSound.mp3', 0.5);
+const explosionSound = () => safePlaySound('ExplosionSoundEffect.mp3', 0.35);
+const levelupSound = () => safePlaySound('LevelUp.mp3', 0.75);
+const healSound = () => safePlaySound('HealSound.mp3', 0.45);
 const shieldSound = () => safePlaySound('ShieldSound.mp3', 1.5);
-const laserSound = () => safePlaySound('LaserSoundEffect.mp3', 0.25);
-const boughtSound = () => safePlaySound('CashSound.mp3', 0.5);
-const tankShootSound = () => safePlaySound('Tank-Shoots.mp3', 0.4);
+const laserSound = () => safePlaySound('LaserSoundEffect.mp3', 0.10);
+const boughtSound = () => safePlaySound('CashSound.mp3', 0.35);
+const tankShootSound = () => safePlaySound('Tank-Shoots.mp3', 0.35);
 
 const reloadSounds = [
   'GunReloadSound1.mp3',
