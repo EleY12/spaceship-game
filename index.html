@@ -71,7 +71,7 @@ window.addEventListener('click', () => {
   }
 }, { once: true });
 
-function safePlaySound(src, volume = 0.2) {
+function safePlaySound(src, volume = 0.5) {
   try {
     const snd = new Audio(src);
     snd.volume = volume;
@@ -83,9 +83,9 @@ const explosionSound = () => safePlaySound('ExplosionSoundEffect.mp3', 0.35);
 const levelupSound = () => safePlaySound('LevelUp.mp3', 0.75);
 const healSound = () => safePlaySound('HealSound.mp3', 0.45);
 const shieldSound = () => safePlaySound('ShieldSound.mp3', 1.5);
-const laserSound = () => safePlaySound('LaserSoundEffect.mp3', 0.10);
+const laserSound = () => safePlaySound('LaserSoundEffect.mp3', 0.01);
 const boughtSound = () => safePlaySound('CashSound.mp3', 0.35);
-const tankShootSound = () => safePlaySound('Tank-Shoots.mp3', 0.35);
+const tankShootSound = () => safePlaySound('Tank-Shoots.mp3', 0.01);
 
 const reloadSounds = [
   'GunReloadSound1.mp3',
