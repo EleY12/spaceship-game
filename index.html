@@ -61,7 +61,7 @@ const ctx = canvas.getContext("2d");
 
 const bgm = new Audio('Spaceship-Game-BGM.mp3');
 bgm.loop = true;
-bgm.volume = 0.45;
+bgm.volume = 0.1;
 
 let audioInitialized = false;
 window.addEventListener('click', () => {
@@ -71,7 +71,7 @@ window.addEventListener('click', () => {
   }
 }, { once: true });
 
-function safePlaySound(src, volume = 0.5) {
+function safePlaySound(src, volume = 0.2) {
   try {
     const snd = new Audio(src);
     snd.volume = volume;
