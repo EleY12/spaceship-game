@@ -3,3 +3,5 @@ Hola! It's me again!
 
 To use, download ALL files.
 Go find the files and double click 'index.html'
+
+If you see anything wrong, I will try to fix it. I'll try to update as soon as possible.
