@@ -1,12 +1,21 @@
-Hola! It's me again!
-# This is 100% UNBLOCKED on school chromebooks so don't worry.
+# 🚀 Unblocked Web Project
+Welcome! This repository contains a fun project that is 100% unblocked and works smoothly on school Chromebooks.
 
-To use, download ALL files.
-Go find the files and double click 'index.html'
+# 🎮 How to Play / Run
+Click the green <> Code button near the top right of the repository.
 
-If you see anything wrong, I will try to fix it. I'll try to update as soon as possible.
+Select Download ZIP.
 
+Once downloaded, double-click the ZIP file to extract it.
 
-(I am sorry if your computer crashes. Sometimes, the audio goes out of control and is delayed or completely muted for a period of time.)
+Open the folder and double-click index.html to launch it right in your browser!
 
-Please start/download!
+# ⚠️ Known Issues & Troubleshooting
+Audio Glitches: Occasionally, the audio might lag, cut out, or repeat. If your computer freezes or audio goes wild, I am so sorry—try refreshing the page or restarting the app!
+
+# 💬 Feedback & Updates
+I try to update and improve things as quickly as possible.
+
+If you run into any bugs or see something that looks broken, please open an issue or let me know so I can try to fix it!
+
+# Enjoy, and have fun!
