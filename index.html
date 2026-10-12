@@ -1,1334 +1,2649 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
   <title>Space Shooter: Ultimate Edition (Web)</title>
+
   <style>
+
     body {
+
       background-color: #050508;
+
       color: #fff;
+
       font-family: Arial, sans-serif;
+
       display: flex;
+
       flex-direction: column;
+
       align-items: center;
+
       justify-content: center;
+
       height: 100vh;
+
       margin: 0;
+
       overflow: hidden;
+
     }
+
     #game-container {
+
       position: relative;
+
       box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+
     }
+
     canvas {
+
       background-color: #000;
+
       display: block;
+
       border: 2px solid #1a1a2e;
+
     }
+
   </style>
+
 </head>
+
 <body>
 
+
+
 <div id="game-container">
+
   <canvas id="gameCanvas" width="800" height="600"></canvas>
+
 </div>
 
+
+
 <script>
+
 // ==========================================
+
 // 1. SUPABASE REST CLIENT
+
 // ==========================================
+
 const SUPABASE_URL = "https://fidqfllnzxjcdpaiuykb.supabase.co";
+
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpZHFmbGxuenhqY2RwYWl1eWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzUyMTIsImV4cCI6MjEwNTYxMTIxMn0.cKxT0xcLg4jxDl_6PYwXsysWhDG_Q8h7YjlJ0rKFYNc";
 
+
+
 async function supabaseFetch(path, options = {}) {
+
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
+
   const headers = {
+
     "apikey": SUPABASE_KEY,
+
     "Authorization": `Bearer ${SUPABASE_KEY}`,
+
     "Content-Type": "application/json",
+
     "Prefer": "return=representation",
+
     ...(options.headers || {})
+
   };
+
   const response = await fetch(url, { ...options, headers });
+
   return await response.json();
+
 }
 
+
+
 // ==========================================
+
 // 2. CANVAS & AUDIO INITIALIZATION
+
 // ==========================================
+
 const canvas = document.getElementById("gameCanvas");
+
 const ctx = canvas.getContext("2d");
 
+
+
 const bgm = new Audio('Spaceship-Game-BGM.mp3');
+
 bgm.loop = true;
+
 bgm.volume = 0.1;
 
+
+
 let audioInitialized = false;
+
 window.addEventListener('click', () => {
+
   if (!audioInitialized) {
+
     bgm.play().catch(() => {});
+
     audioInitialized = true;
+
   }
+
 }, { once: true });
 
+
+
 function safePlaySound(src, volume = 0.5) {
+
   try {
+
     const snd = new Audio(src);
+
     snd.volume = volume;
+
     snd.play().catch(() => {});
+
   } catch (e) {}
+
 }
+
+
 
 const explosionSound = () => safePlaySound('ExplosionSoundEffect.mp3', 0.15);
+
 const levelupSound = () => safePlaySound('LevelUp.mp3', 0.5);
+
 const healSound = () => safePlaySound('HealSound.mp3', 0.45);
+
 const shieldSound = () => safePlaySound('ShieldSound.mp3', 1.5);
+
 const laserSound = () => safePlaySound('LaserSoundEffect.mp3', 0.07);
+
 const boughtSound = () => safePlaySound('CashSound.mp3', 0.35);
+
 const tankShootSound = () => safePlaySound('Tank-Shoots.mp3', 0.25);
 
+
+
 const reloadSounds = [
+
   'GunReloadSound1.mp3',
+
   'GunReloadSound2.mp3',
+
   'GunReloadSound3.mp3'
+
 ];
 
+
+
 // ==========================================
+
 // 3. ASSET LOADING WITH ADVANCED FALLBACKS
+
 // ==========================================
+
 function loadImage(src) {
+
   const img = new Image();
+
   img.src = src;
+
   return img;
+
 }
+
+
 
 const picture_ship = loadImage("SpaceShip-Blue.png");
+
 const picture_missile = loadImage("Missile-Picture.png");
+
 const picture_enemy = loadImage("enemies.png");
+
 const picture_tank = loadImage("enemies-tank.png");
+
 const picture_boss = loadImage("boss-picture.png");
+
 const picture_boss_missile = loadImage("boss-missile.png");
 
+
+
 function drawFallbackShip(x, y) {
+
   ctx.save();
+
   ctx.shadowColor = "#00ffff";
+
   ctx.shadowBlur = 10;
+
   ctx.fillStyle = "#00bfff";
+
   ctx.beginPath();
+
   ctx.moveTo(x + 32, y);
+
   ctx.lineTo(x + 65, y + 60);
+
   ctx.lineTo(x + 50, y + 70);
+
   ctx.lineTo(x + 32, y + 55);
+
   ctx.lineTo(x + 15, y + 70);
+
   ctx.lineTo(x, y + 60);
+
   ctx.closePath();
+
   ctx.fill();
 
+
+
   ctx.fillStyle = "#ffffff";
+
   ctx.beginPath();
+
   ctx.arc(x + 32, y + 25, 8, 0, Math.PI * 2);
+
   ctx.fill();
+
   ctx.restore();
+
 }
+
+
 
 function drawFallbackEnemy(x, y) {
+
   ctx.save();
+
   ctx.shadowColor = "#ff3333";
+
   ctx.shadowBlur = 8;
+
   ctx.fillStyle = "#ff2222";
+
   ctx.beginPath();
+
   ctx.moveTo(x + 10, y + 20);
+
   ctx.lineTo(x, y);
+
   ctx.lineTo(x + 20, y);
+
   ctx.closePath();
+
   ctx.fill();
+
   ctx.restore();
+
 }
+
+
 
 function drawFallbackTank(x, y) {
+
   ctx.save();
+
   ctx.shadowColor = "#00ff66";
+
   ctx.shadowBlur = 10;
+
   ctx.fillStyle = "#00cc44";
+
   ctx.fillRect(x + 10, y + 10, 40, 40);
+
   ctx.fillStyle = "#115522";
+
   ctx.fillRect(x, y + 5, 10, 50);
+
   ctx.fillRect(x + 50, y + 5, 10, 50);
+
   ctx.fillStyle = "#ffffff";
+
   ctx.fillRect(x + 27, y + 30, 6, 25);
+
   ctx.restore();
+
 }
+
+
 
 function drawFallbackBoss(x, y) {
+
   ctx.save();
+
   ctx.shadowColor = "#ff00ff";
+
   ctx.shadowBlur = 20;
+
   ctx.fillStyle = "#800080";
+
   ctx.beginPath();
+
   ctx.moveTo(x + 60, y + 120);
+
   ctx.lineTo(x + 120, y + 20);
+
   ctx.lineTo(x + 90, y);
+
   ctx.lineTo(x + 60, y + 30);
+
   ctx.lineTo(x + 30, y);
+
   ctx.lineTo(x, y + 20);
+
   ctx.closePath();
+
   ctx.fill();
+
+
 
   ctx.fillStyle = "#ff0000";
+
   ctx.beginPath();
+
   ctx.arc(x + 60, y + 60, 20, 0, Math.PI * 2);
+
   ctx.fill();
+
   ctx.restore();
+
 }
 
+
+
 // ==========================================
+
 // 4. GAME STATE & CONSTANTS
+
 // ==========================================
+
 let gameState = "AUTH";
+
 let authMode = "LOGIN";
+
 let activeField = "username";
 
+
+
 let inputUsername = "";
+
 let inputPassword = "";
+
 let inputEmail = "";
+
 let authMessage = "";
+
 let loggedInUser = null;
+
 let userBestScore = 0;
 
+
+
 let score = 0;
+
 let level = 1;
+
 let scoreNeededForNextLevel = 100;
+
 let levelSpeedMultiplier = 0.0;
+
 let playerHealth = 3.0;
+
 let playerMaxHealth = 5.0;
 
+
+
 let shipX = 350;
+
 let shipY = 400;
+
 let shipSpeed = 6;
+
 let playerMissileSpeed = 9;
 
+
+
 let shieldCount = 0;
+
 let dualShotTimer = 0;
+
 let trioShotTimer = 0;
+
 let fireCooldown = 0;
 
+
+
 let dodgeTimer = 0;
+
 let dodgeCooldown = 0;
+
 let speedBoostTimer = 0;
+
 let speedBoostCooldown = 0;
 
-// Temporary Upgrades Tracking
-let tempSpeedBoostTimer = 0;
-let tempDamageBoostTimer = 0;
+
 
 let comboCount = 0;
+
 let comboTimer = 0;
+
 let comboMultiplier = 1.0;
 
+
+
 let permShotTier = 1;
+
 const WEAPON_UPGRADE_COSTS = { 2: 1000, 3: 2500, 4: 5000, 5: 10000, 6: 20000 };
+
 const WEAPON_TIER_NAMES = {
+
   1: "Single Shot",
+
   2: "Permanent Dual Shot",
+
   3: "Permanent Trio Shot",
+
   4: "Permanent Quad Shot",
+
   5: "Permanent Penta Shot",
+
   6: "Permanent Hexa Shot"
+
 };
 
+
+
 let currentMission = "NONE";
+
 let missionDesc = "";
+
 let missionProgress = 0;
+
 let missionStartScore = 0;
+
 let laserStormHitTaken = false;
 
+
+
 let anomalyType = "NONE";
+
 let laserStormProjectiles = [];
+
 let laserStormDuration = 0;
 
-let ultimateCharge = 0;
+
+
+let ultimateCharge = 0; // REQUIRES 100 TO FIRE
+
 let ultimateActiveTimer = 0;
 
+
+
 let isBossStage = false;
+
 let bossSpawned = false;
 
+
+
 let missiles = [];
+
 let bossMissiles = [];
+
 let enemies = [];
+
 let tanks = [];
+
 let bosses = [];
+
 let powerups = [];
+
 let particles = [];
+
 let floatingTexts = [];
+
 let leaderboard = [];
 
+
+
 let shakeIntensity = 0;
+
 let shakeTimer = 0;
+
 let powerupSpeed = 2.5;
+
+
 
 const keys = {};
 
+
+
 const starsBack = Array.from({ length: 30 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.3 + 0.3]);
+
 const starsMid = Array.from({ length: 20 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 0.5 + 0.8]);
+
 const starsFore = Array.from({ length: 10 }, () => [Math.random() * 800, Math.random() * 600, Math.random() * 1.0 + 1.5]);
 
+
+
 // ==========================================
+
 // 5. HELPER FUNCTIONS & MISSION SYSTEM
+
 // ==========================================
+
 function triggerShake(duration, intensity) {
+
   shakeTimer = duration;
+
   shakeIntensity = intensity;
+
 }
+
+
 
 function spawnExplosion(x, y, count = 15, colorSet = null) {
+
   explosionSound();
+
   if (!colorSet) colorSet = ["#ff4500", "#ff8c00", "#ffd700"];
+
   for (let i = 0; i < count; i++) {
+
     particles.push({
+
       x: x,
+
       y: y,
+
       vx: (Math.random() - 0.5) * 6,
+
       vy: (Math.random() - 0.5) * 6,
+
       life: Math.floor(Math.random() * 20) + 20,
+
       color: colorSet[Math.floor(Math.random() * colorSet.length)]
+
     });
+
   }
+
 }
+
+
 
 function addScore(pts) {
+
   comboCount++;
+
   comboTimer = 120;
+
   if (comboCount >= 10) comboMultiplier = 2.5;
+
   else if (comboCount >= 5) comboMultiplier = 2.0;
+
   else if (comboCount >= 3) comboMultiplier = 1.5;
+
   else comboMultiplier = 1.0;
 
+
+
   const earned = Math.floor(pts * comboMultiplier);
+
   score += earned;
+
   return earned;
+
 }
+
+
 
 function addUltimateCharge(amount) {
+
   if (ultimateCharge < 100) {
+
     ultimateCharge = Math.min(100, ultimateCharge + amount);
+
   }
+
 }
+
+
 
 function spawnFloatingText(x, y, text, color = "#ffd700") {
+
   floatingTexts.push({ x: x, y: y, text: text, color: color, life: 40 });
+
 }
+
+
 
 function drawPixelHeart(x, y, size = 24, full = true, half = false) {
+
   ctx.save();
+
   ctx.fillStyle = (full || half) ? "#ff0000" : "#3c3c3c";
+
   const unit = size / 18;
 
+
+
   ctx.fillRect(x + 2 * unit, y + 4 * unit, 4 * unit, 4 * unit);
+
   ctx.fillRect(x + 4 * unit, y + 2 * unit, 4 * unit, 4 * unit);
+
   ctx.fillRect(x + 12 * unit, y + 4 * unit, 4 * unit, 4 * unit);
+
   ctx.fillRect(x + 10 * unit, y + 2 * unit, 4 * unit, 4 * unit);
+
   ctx.fillRect(x + 2 * unit, y + 8 * unit, 14 * unit, 4 * unit);
+
   ctx.fillRect(x + 4 * unit, y + 12 * unit, 10 * unit, 2 * unit);
+
   ctx.fillRect(x + 6 * unit, y + 14 * unit, 6 * unit, 2 * unit);
+
   ctx.fillRect(x + 8 * unit, y + 16 * unit, 2 * unit, 2 * unit);
 
+
+
   if (half) {
+
     ctx.fillStyle = "#3c3c3c";
+
     ctx.fillRect(x + 9 * unit, y + 2 * unit, 7 * unit, 4 * unit);
+
     ctx.fillRect(x + 9 * unit, y + 8 * unit, 7 * unit, 4 * unit);
+
     ctx.fillRect(x + 9 * unit, y + 12 * unit, 5 * unit, 2 * unit);
+
     ctx.fillRect(x + 9 * unit, y + 14 * unit, 3 * unit, 2 * unit);
+
     ctx.fillRect(x + 9 * unit, y + 16 * unit, 1 * unit, 2 * unit);
+
   }
+
   ctx.restore();
+
 }
+
+
 
 function getRandomScout(hp = 1.0) {
+
   const speedBonus = levelSpeedMultiplier * 0.5;
+
   const roll = Math.random();
+
   let enemyX, enemyY, speedX, speedY, typeStr;
 
+
+
   if (roll < 0.35) {
+
     enemyX = Math.random() * 700 + 50;
+
     enemyY = -Math.random() * 100 - 50;
+
     speedX = 0;
+
     speedY = Math.random() * 2 + 2.2 + speedBonus;
+
     typeStr = "SINE";
+
   } else if (roll < 0.70) {
+
     enemyX = Math.random() < 0.5 ? -20 : 820;
+
     enemyY = Math.random() * 250 + 50;
+
     speedX = Math.random() * 2.5 + 2 + speedBonus;
+
     if (enemyX > 0) speedX = -speedX;
+
     speedY = 0;
+
     typeStr = "STANDARD";
+
   } else {
+
     enemyX = Math.random() * 780;
+
     enemyY = -Math.random() * 100 - 50;
+
     speedX = 0;
+
     speedY = Math.random() * 2.5 + 2.5 + speedBonus;
+
     typeStr = "STANDARD";
+
   }
+
   return { x: enemyX, y: enemyY, vx: speedX, vy: speedY, type: typeStr, sinAngle: 0, hp: hp };
+
 }
+
+
 
 function triggerLaserStorm() {
+
   laserStormProjectiles = [];
+
   laserStormDuration = 400;
+
   if (currentMission === "METEOR_SURVIVOR") laserStormHitTaken = false;
+
   for (let i = 0; i < 15; i++) {
+
     laserStormProjectiles.push({
+
       x: Math.random() * 600 + 100,
+
       y: -Math.random() * 150 - 50,
+
       vx: (Math.random() - 0.5) * 5,
+
       vy: Math.random() * 3 + 3
+
     });
+
   }
+
 }
+
+
 
 function selectNewMission() {
+
   const missions = [
+
     ["SHIELD_HOARDER", "Hold 2 Shields at once"],
+
     ["SNIPER", "Defeat 3 Tanks"],
+
     ["COLLECTOR", "Collect 3 powerups in a level"],
+
     ["BOSS_HUNTER", "Hit the boss 10 times"],
+
     ["TANK_BUSTER", "Defeat 5 Tanks total"],
+
     ["METEOR_SURVIVOR", "Survive laser storm anomaly cleanly"],
+
     ["SCORE_CHASER", "Gain 500 points in this mission loop"],
+
     ["ULTIMATE_USER", "Fire your Ultimate Beam weapon"]
+
   ];
 
+
+
   let validMissions = missions.filter(m => !(m[0] === "BOSS_HUNTER" && level % 10 !== 0));
+
   if (validMissions.length === 0) validMissions = missions.filter(m => m[0] !== "BOSS_HUNTER");
 
+
+
   const chosen = validMissions[Math.floor(Math.random() * validMissions.length)];
+
   currentMission = chosen[0];
+
   missionDesc = chosen[1];
+
   missionProgress = 0;
+
   missionStartScore = score;
+
   laserStormHitTaken = false;
 
+
+
   if (currentMission === "METEOR_SURVIVOR") {
+
     anomalyType = "LASER_STORM";
+
     triggerLaserStorm();
+
   }
+
 }
+
+
 
 function spawnStandardEnemies() {
+
   const count = 6;
+
   enemies = [];
+
   for (let i = 0; i < count; i++) enemies.push(getRandomScout());
 
+
+
   tanks = [];
+
   for (let i = 0; i < 2; i++) {
+
     tanks.push({
+
       x: Math.random() * 740,
+
       y: -Math.random() * 400 - 100,
+
       speed: Math.random() * 1.2 + 1.2 + levelSpeedMultiplier * 0.3,
+
       hp: 3,
+
       fireTimer: 0
+
     });
+
   }
+
+
 
   if (level % 10 !== 0) {
+
     if (Math.random() < 0.15 && currentMission !== "METEOR_SURVIVOR") {
+
       anomalyType = Math.random() < 0.5 ? "WORMHOLE" : "LASER_STORM";
+
       if (anomalyType === "LASER_STORM") triggerLaserStorm();
+
     } else if (currentMission !== "METEOR_SURVIVOR") {
+
       anomalyType = "NONE";
+
     }
+
   }
+
 }
+
+
 
 function resetGame() {
+
   score = 0;
+
   playerHealth = 3.0;
+
   shipX = 350;
+
   shipY = 400;
+
   shipSpeed = 6;
+
   playerMissileSpeed = 9;
+
   permShotTier = 1;
+
   shieldCount = 0;
+
   dualShotTimer = 0;
+
   trioShotTimer = 0;
-  tempSpeedBoostTimer = 0;
-  tempDamageBoostTimer = 0;
+
   ultimateCharge = 0;
+
   ultimateActiveTimer = 0;
+
   dodgeTimer = 0;
+
   dodgeCooldown = 0;
+
   speedBoostTimer = 0;
+
   speedBoostCooldown = 0;
+
   comboCount = 0;
+
   comboTimer = 0;
+
   comboMultiplier = 1.0;
 
+
+
   anomalyType = "NONE";
+
   laserStormProjectiles = [];
+
   missiles = [];
+
   bossMissiles = [];
+
   bosses = [];
+
   powerups = [];
+
   particles = [];
+
   floatingTexts = [];
+
   shakeIntensity = 0;
+
   shakeTimer = 0;
 
+
+
   level = 1;
+
   scoreNeededForNextLevel = 100;
+
   levelSpeedMultiplier = 0.0;
+
   isBossStage = false;
+
   bossSpawned = false;
 
+
+
   selectNewMission();
+
   spawnStandardEnemies();
+
 }
 
+
+
 function fireMissiles() {
+
   laserSound();
 
+
+
   let tempBoost = 1;
+
   if (trioShotTimer > 0) tempBoost = 3;
+
   else if (dualShotTimer > 0) tempBoost = 2;
+
+
 
   const activeTier = Math.max(permShotTier, tempBoost);
 
+
+
   if (activeTier === 1) {
+
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
+
   } else if (activeTier === 2) {
+
     missiles.push({ x: shipX + 10, y: shipY, vx: 0, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 40, y: shipY, vx: 0, vy: -playerMissileSpeed });
+
   } else if (activeTier === 3) {
+
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 10, y: shipY, vx: -1.8, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 40, y: shipY, vx: 1.8, vy: -playerMissileSpeed });
+
   } else if (activeTier === 4) {
+
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 5, y: shipY, vx: -2.5, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 45, y: shipY, vx: 2.5, vy: -playerMissileSpeed });
+
   } else if (activeTier === 5) {
+
     missiles.push({ x: shipX + 25, y: shipY, vx: 0, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 15, y: shipY, vx: -1.8, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 35, y: shipY, vx: 1.8, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 5, y: shipY, vx: -3.5, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 45, y: shipY, vx: 3.5, vy: -playerMissileSpeed });
+
   } else if (activeTier >= 6) {
+
     missiles.push({ x: shipX + 15, y: shipY, vx: -1, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 35, y: shipY, vx: 1, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 5, y: shipY, vx: -2.5, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 45, y: shipY, vx: 2.5, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX - 5, y: shipY, vx: -4.5, vy: -playerMissileSpeed });
+
     missiles.push({ x: shipX + 55, y: shipY, vx: 4.5, vy: -playerMissileSpeed });
+
   }
+
 }
 
+
+
 // ==========================================
+
 // 6. DATABASE AUTH & LEADERBOARD
+
 // ==========================================
+
 async function loadLeaderboard() {
+
   try {
+
     const data = await supabaseFetch("Player%20Info?select=high_score,username,level&order=high_score.desc&limit=5");
+
     if (Array.isArray(data)) {
+
       leaderboard = data.map(r => [r.high_score || 0, r.username || "Player", r.level || 1]);
+
     }
+
   } catch (e) {
+
     console.error("Leaderboard fetch error:", e);
+
   }
+
 }
+
+
 
 async function handleRegister() {
+
   if (!inputUsername || !inputPassword) {
+
     authMessage = "Error: Username & Password required!";
+
     return;
+
   }
+
   try {
+
     const existing = await supabaseFetch(`Player%20Info?username=eq.${encodeURIComponent(inputUsername)}`);
+
     if (Array.isArray(existing) && existing.length > 0) {
+
       authMessage = "Error: Username taken!";
+
       return;
+
     }
+
+
 
     await supabaseFetch("Player%20Info", {
+
       method: "POST",
+
       body: JSON.stringify({
+
         username: inputUsername,
+
         password: inputPassword,
+
         email: inputEmail,
+
         high_score: 0,
+
         score: 0,
+
         level: 1
+
       })
+
     });
+
+
 
     loggedInUser = inputUsername;
+
     userBestScore = 0;
+
     authMessage = "Success! Account Created.";
+
     resetGame();
+
     gameState = "PLAYING";
+
     bgm.play().catch(() => {});
+
   } catch (err) {
+
     authMessage = "Register Failed!";
+
   }
+
 }
+
+
 
 async function handleLogin() {
+
   if (!inputUsername || !inputPassword) {
+
     authMessage = "Error: Username & Password required!";
+
     return;
+
   }
+
   try {
+
     const data = await supabaseFetch(`Player%20Info?username=eq.${encodeURIComponent(inputUsername)}&password=eq.${encodeURIComponent(inputPassword)}`);
+
     if (Array.isArray(data) && data.length > 0) {
+
       loggedInUser = data[0].username;
+
       userBestScore = data[0].high_score || 0;
+
       authMessage = "Login Successful!";
+
       resetGame();
+
       gameState = "PLAYING";
+
       bgm.play().catch(() => {});
+
     } else {
+
       authMessage = "Error: Incorrect credentials.";
+
     }
+
   } catch (err) {
+
     authMessage = "Login Failed!";
+
   }
+
 }
+
+
 
 async function updateScoreInSupabase(finalScore, reachedLevel) {
+
   if (!loggedInUser) return;
+
   const newHigh = Math.max(userBestScore, finalScore);
+
   userBestScore = newHigh;
 
+
+
   try {
+
     await supabaseFetch(`Player%20Info?username=eq.${encodeURIComponent(loggedInUser)}`, {
+
       method: "PATCH",
+
       body: JSON.stringify({ score: finalScore, high_score: newHigh, level: reachedLevel })
+
     });
+
     loadLeaderboard();
+
   } catch (e) {}
+
 }
+
+
 
 loadLeaderboard();
 
+
+
 // ==========================================
+
 // 7. INPUT LISTENERS
+
 // ==========================================
+
 window.addEventListener("keydown", e => {
+
   keys[e.key] = true;
 
+
+
   if (gameState === "AUTH") {
+
     if (e.key === "Tab") {
+
       e.preventDefault();
+
       if (authMode === "LOGIN") activeField = activeField === "username" ? "password" : "username";
+
       else {
+
         if (activeField === "username") activeField = "password";
+
         else if (activeField === "password") activeField = "email";
+
         else activeField = "username";
+
       }
+
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+
       authMode = authMode === "LOGIN" ? "REGISTER" : "LOGIN";
+
       authMessage = `Switched to ${authMode} mode.`;
+
     } else if (e.key === "Enter") {
+
       if (authMode === "LOGIN") handleLogin();
+
       else handleRegister();
+
     } else if (e.key === "Backspace") {
+
       if (activeField === "username") inputUsername = inputUsername.slice(0, -1);
+
       if (activeField === "password") inputPassword = inputPassword.slice(0, -1);
+
       if (activeField === "email") inputEmail = inputEmail.slice(0, -1);
+
     } else if (e.key.length === 1) {
+
       if (activeField === "username" && inputUsername.length < 15) inputUsername += e.key;
+
       if (activeField === "password" && inputPassword.length < 20) inputPassword += e.key;
+
       if (activeField === "email" && inputEmail.length < 30) inputEmail += e.key;
+
     }
+
   } else if (e.key === "Escape" && (gameState === "PLAYING" || gameState === "PAUSED")) {
+
     gameState = gameState === "PLAYING" ? "PAUSED" : "PLAYING";
+
   }
 
+
+
   if (gameState === "GAMEOVER" && e.key.toLowerCase() === "r") {
+
     resetGame();
+
     gameState = "PLAYING";
+
   } else if (gameState === "SHOP") {
+
     if (e.key === "1") {
-      if (score >= 150) { score -= 150; shipSpeed = Math.min(25, shipSpeed + 1); boughtSound(); }
+
+      if (score >= 150) { score -= 150; shipSpeed++; boughtSound(); }
+
     } else if (e.key === "2") {
+
       if (score >= 100 && shieldCount < 2) {
+
         score -= 100; shieldCount++; shieldSound(); boughtSound();
+
         if (currentMission === "SHIELD_HOARDER" && shieldCount === 2) { score += 300; selectNewMission(); }
+
       }
+
     } else if (e.key === "3") {
+
       if (score >= 120 && playerHealth < playerMaxHealth) {
+
         score -= 120; playerHealth = Math.min(playerMaxHealth, playerHealth + 1.0); healSound(); boughtSound();
+
       }
+
     } else if (e.key === "4") {
+
       if (score >= 150) { score -= 150; addUltimateCharge(50); boughtSound(); }
+
     } else if (e.key === "5") {
+
       if (score >= 250) { score -= 250; playerMissileSpeed++; boughtSound(); }
+
     } else if (e.key === "6") {
+
       const nextTier = permShotTier + 1;
+
       if (WEAPON_UPGRADE_COSTS[nextTier]) {
+
         const needed = WEAPON_UPGRADE_COSTS[nextTier];
+
         if (score >= needed) {
+
           score -= needed; permShotTier = nextTier; boughtSound();
+
           if (nextTier === 2) safePlaySound(reloadSounds[0]);
+
           else if (nextTier === 3) { safePlaySound(reloadSounds[0]); safePlaySound(reloadSounds[1]); }
+
           else { safePlaySound(reloadSounds[0]); safePlaySound(reloadSounds[1]); safePlaySound(reloadSounds[2]); }
+
         }
+
       }
+
     } else if (e.key === "Enter") {
+
       level++;
+
       levelSpeedMultiplier += 0.15;
+
       scoreNeededForNextLevel = score + 150;
+
       isBossStage = false;
+
       bossSpawned = false;
+
       bosses = [];
+
       bossMissiles = [];
+
       spawnStandardEnemies();
+
       gameState = "PLAYING";
+
     }
+
   } else if (gameState === "PLAYING") {
+
     if (e.key.toLowerCase() === "c") {
+
       if (dodgeCooldown <= 0) { dodgeTimer = 20; dodgeCooldown = 300; shieldSound(); }
+
     } else if (e.key.toLowerCase() === "v" || e.key === "Control") {
+
       if (speedBoostCooldown <= 0) { speedBoostTimer = 180; speedBoostCooldown = 480; boughtSound(); }
+
     } else if (e.key === "Shift") {
+
       if (ultimateActiveTimer === 0 && ultimateCharge >= 100) {
+
         ultimateActiveTimer = 120;
+
         ultimateCharge = 0;
+
         triggerShake(120, 10);
+
         if (currentMission === "ULTIMATE_USER") { score += 300; selectNewMission(); }
+
       }
+
     }
+
   }
+
 });
+
+
 
 window.addEventListener("keyup", e => { keys[e.key] = false; });
 
+
+
 // ==========================================
+
 // 8. MAIN ENGINE & 60 FPS DELTA TIME LOCK
+
 // ==========================================
+
 let lastTime = 0;
+
 const fps = 60;
+
 const fpsInterval = 1000 / fps;
 
+
+
 function gameLoop(timestamp) {
+
   requestAnimationFrame(gameLoop);
 
+
+
   if (!lastTime) lastTime = timestamp;
+
   const elapsed = timestamp - lastTime;
+
+
 
   if (elapsed < fpsInterval) return;
 
+
+
   lastTime = timestamp - (elapsed % fpsInterval);
 
+
+
   for (let s of starsBack) { s[1] += s[2] + levelSpeedMultiplier * 0.3; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+
   for (let s of starsMid) { s[1] += s[2] + levelSpeedMultiplier * 0.5; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
+
   for (let s of starsFore) { s[1] += s[2] + levelSpeedMultiplier * 0.8; if (s[1] > 600) { s[0] = Math.random() * 800; s[1] = 0; } }
 
+
+
   if (gameState === "PLAYING") {
+
     if (fireCooldown > 0) fireCooldown--;
+
     if (dodgeTimer > 0) dodgeTimer--;
+
     if (dodgeCooldown > 0) dodgeCooldown--;
+
     if (speedBoostTimer > 0) speedBoostTimer--;
+
     if (speedBoostCooldown > 0) speedBoostCooldown--;
-    if (tempSpeedBoostTimer > 0) tempSpeedBoostTimer--;
-    if (tempDamageBoostTimer > 0) tempDamageBoostTimer--;
+
+
 
     if (comboTimer > 0) {
+
       comboTimer--;
+
       if (comboTimer <= 0) { comboCount = 0; comboMultiplier = 1.0; }
+
     }
+
+
 
     let currentSpd = shipSpeed;
+
     if (speedBoostTimer > 0) currentSpd *= 1.6;
+
     if (dodgeTimer > 0) currentSpd *= 1.5;
-    if (tempSpeedBoostTimer > 0) currentSpd *= 1.5;
-    
-    // Cap ship speed at 25 max
-    if (currentSpd > 25) currentSpd = 25;
+
+
 
     if (keys["ArrowLeft"]) shipX -= currentSpd;
+
     if (keys["ArrowRight"]) shipX += currentSpd;
+
     if (keys["ArrowUp"]) shipY -= currentSpd;
+
     if (keys["ArrowDown"]) shipY += currentSpd;
 
+
+
     if (keys[" "] && fireCooldown <= 0) {
+
       fireMissiles();
+
       fireCooldown = 10;
+
     }
+
+
 
     const maxBottomY = 780;
+
     if (anomalyType === "WORMHOLE") {
+
       if (shipX < -40) { shipX = 775; spawnExplosion(shipX, shipY, 6, ["#9370db", "#00ffff"]); }
+
       else if (shipX > 815) { shipX = -15; spawnExplosion(shipX, shipY, 6, ["#9370db", "#00ffff"]); }
+
       if (shipY < -40) { shipY = maxBottomY - 10; spawnExplosion(shipX, shipY, 6, ["#9370db", "#00ffff"]); }
+
       else if (shipY > maxBottomY + 20) { shipY = 0; spawnExplosion(shipX, shipY, 6, ["#9370db", "#00ffff"]); }
+
     } else {
+
       shipX = Math.max(0, Math.min(shipX, 735));
+
       shipY = Math.max(0, Math.min(shipY, 530));
+
     }
+
+
 
     if (Math.random() < 0.6) {
+
       particles.push({
+
         x: shipX + 32,
+
         y: shipY + 65,
+
         vx: (Math.random() - 0.5) * 2,
+
         vy: Math.random() * 3 + 2,
+
         life: 15,
+
         color: speedBoostTimer > 0 ? "#00ffff" : "#ff8c00"
+
       });
+
     }
 
-    // Win condition: Must destroy all enemies and tanks in the level
-    if (!isBossStage && enemies.length === 0 && tanks.length === 0) {
-      levelupSound();
-      gameState = "SHOP";
-    }
+
+
+    if (!isBossStage && enemies.length === 0) spawnStandardEnemies();
+
+
 
     if (currentMission === "SCORE_CHASER" && score - missionStartScore >= 500) {
+
       score += 300; selectNewMission();
+
     }
+
+
 
     if (level % 10 === 0) {
+
       isBossStage = true;
+
       if (!bossSpawned) {
+
         bosses = [];
+
         const bossFightCount = Math.floor(level / 10);
+
         const numBosses = Math.floor((bossFightCount - 1) / 5) + 1;
+
         
+
         const bossMaxHp = 20 + numBosses * 15;
+
         const bossSpd = 1.8 + levelSpeedMultiplier;
 
+
+
         for (let idx = 0; idx < numBosses; idx++) {
+
           bosses.push({
+
             x: (800 / (numBosses + 1)) * (idx + 1) - 60,
+
             y: -150 - idx * 100,
+
             targetY: Math.min(280, 50 + idx * 65),
+
             hp: bossMaxHp,
+
             maxHp: bossMaxHp,
+
             speed: bossSpd,
+
             dir: idx % 2 === 0 ? 1 : -1,
+
             fireTimer: 0,
+
             patternAngle: 0
+
           });
+
         }
+
         bossSpawned = true;
+
         enemies = []; tanks = []; bossMissiles = [];
+
       }
+
     } else {
+
       isBossStage = false; bossSpawned = false; bosses = [];
+
+      if (score >= scoreNeededForNextLevel) {
+
+        level++; levelSpeedMultiplier += 0.15; scoreNeededForNextLevel += 150;
+
+        levelupSound(); spawnStandardEnemies();
+
+      }
+
     }
+
+
 
     // ULTIMATE BEAM
+
     if (ultimateActiveTimer > 0) {
+
       ultimateActiveTimer--;
+
       const beamDamage = 0.5;
 
+
+
       enemies.forEach((enemy, eIdx) => {
+
         if (enemy.x > shipX - 15 && enemy.x < shipX + 80) {
+
           enemy.hp -= beamDamage;
+
           if (enemy.hp <= 0) {
+
             spawnExplosion(enemy.x + 10, enemy.y + 10, 15);
+
             const pts = addScore(10);
+
             addUltimateCharge(1);
+
             spawnFloatingText(enemy.x, enemy.y, `+${pts}`);
-            enemies.splice(eIdx, 1);
+
+            enemies[eIdx] = getRandomScout();
+
           }
+
         }
+
       });
+
+
 
       tanks.forEach((tank, tIdx) => {
+
         if (tank.x > shipX - 15 && tank.x < shipX + 80) {
+
           tank.hp -= beamDamage;
+
           if (tank.hp <= 0) {
+
             spawnExplosion(tank.x + 30, tank.y + 30, 25);
+
             const pts = addScore(50);
+
             addUltimateCharge(5);
+
             spawnFloatingText(tank.x, tank.y, `+${pts}`);
+
             tanks.splice(tIdx, 1);
+
             if (currentMission === "SNIPER" || currentMission === "TANK_BUSTER") {
+
               missionProgress++;
+
               if ((currentMission === "SNIPER" && missionProgress >= 3) || (currentMission === "TANK_BUSTER" && missionProgress >= 5)) {
+
                 score += 350; selectNewMission();
+
               }
+
             }
+
           }
+
         }
+
       });
+
+
 
       if (isBossStage && bossSpawned) {
+
         bosses.forEach((b, bIdx) => {
+
           if (b.x + 120 > shipX - 15 && b.x < shipX + 80) {
+
             b.hp -= beamDamage;
+
             spawnExplosion(b.x + 60, b.y + 110, 2, ["#00ff00", "#ffffff"]);
+
             if (b.hp <= 0) {
+
               spawnExplosion(b.x + 60, b.y + 60, 60);
+
               const pts = addScore(500);
+
               addUltimateCharge(25);
+
               spawnFloatingText(b.x + 40, b.y, `+${pts}`);
+
               bosses.splice(bIdx, 1);
+
               if (bosses.length === 0) gameState = "SHOP";
+
             }
+
           }
+
         });
+
       }
 
+
+
+      // ULTIMATE BEAM ALSO WIPES ENEMY MISSILES
+
       bossMissiles.forEach((bm, bmIdx) => {
+
         if (bm.x + 20 > shipX - 15 && bm.x < shipX + 80) {
+
           spawnExplosion(bm.x + 20, bm.y + 20, 6, ["#ff00ff", "#00ffff"]);
+
           bossMissiles.splice(bmIdx, 1);
+
         }
+
       });
+
     }
+
+
+
+    // TIME SLOW / SPEED BOOST MULTIPLIER (SLOWS ENEMIES & MISSILES BY HALF)
 
     const timeFactor = speedBoostTimer > 0 ? 0.4 : 1.0;
 
+
+
     missiles.forEach((m, mIdx) => {
+
       m.x += m.vx; m.y += m.vy;
+
       if (m.y < -30 || m.x < -30 || m.x > 830) missiles.splice(mIdx, 1);
+
     });
+
+
 
     bossMissiles.forEach((bm, bmIdx) => {
+
       bm.x += bm.vx * timeFactor; bm.y += bm.vy * timeFactor;
+
       if (bm.y > 640 || bm.x < -40 || bm.x > 840) bossMissiles.splice(bmIdx, 1);
+
     });
+
+
+
+    // COLLISION LOGIC: PLAYER MISSILES vs ENEMY MISSILES (MISSILE DESTRUCTION)
 
     missiles.forEach((m, mIdx) => {
+
       bossMissiles.forEach((bm, bmIdx) => {
+
         if (Math.abs(m.x - (bm.x + 20)) < 25 && Math.abs(m.y - (bm.y + 20)) < 25) {
+
           spawnExplosion(bm.x + 20, bm.y + 20, 8, ["#ff00ff", "#ffffff"]);
+
           missiles.splice(mIdx, 1);
+
           bossMissiles.splice(bmIdx, 1);
+
         }
+
       });
+
     });
+
+
 
     if (anomalyType === "LASER_STORM") {
+
       laserStormDuration--;
+
       if (laserStormDuration <= 0) {
+
         anomalyType = "NONE"; laserStormProjectiles = [];
+
         if (currentMission === "METEOR_SURVIVOR") {
+
           if (!laserStormHitTaken) { score += 400; spawnFloatingText(shipX, shipY, "+400 MISSION BONUS!", "#00ff00"); }
+
           selectNewMission();
+
         }
+
       } else {
+
         laserStormProjectiles.forEach(lp => {
+
           lp.x += lp.vx * timeFactor; lp.y += lp.vy * timeFactor;
+
           if (lp.y > 620 || lp.x < -20 || lp.x > 820) {
+
             lp.x = Math.random() * 700 + 50; lp.y = -Math.random() * 120 - 30;
+
             lp.vx = (Math.random() - 0.5) * 6; lp.vy = Math.random() * 3 + 3;
+
           }
+
         });
+
       }
+
     }
+
+
 
     if (!isBossStage) {
+
       enemies.forEach((e, eIdx) => {
+
         if (e.type === "SINE") {
+
           e.sinAngle += 0.08 * timeFactor;
+
           e.x += Math.sin(e.sinAngle) * 3 * timeFactor;
+
           e.y += e.vy * timeFactor;
+
         } else {
+
           e.x += e.vx * timeFactor; e.y += e.vy * timeFactor;
+
         }
+
+
 
         if (e.y > 650 || (e.vx < 0 && e.x < -30) || (e.vx > 0 && e.x > 830)) {
-          enemies.splice(eIdx, 1);
+
+          enemies[eIdx] = getRandomScout();
+
         }
+
       });
 
-      tanks.forEach((tank, tIdx) => {
+
+
+      tanks.forEach(tank => {
+
         tank.y += tank.speed * timeFactor;
+
         tank.fireTimer++;
+
         if (tank.fireTimer >= 90 && tank.y > 0) {
+
           tank.fireTimer = 0;
+
           bossMissiles.push({ x: tank.x + 10, y: tank.y + 60, vx: 0, vy: 5 + levelSpeedMultiplier });
+
           tankShootSound();
+
         }
+
         if (tank.y > 650) {
-          tanks.splice(tIdx, 1);
+
+          tank.x = Math.random() * 740; tank.y = -Math.random() * 200 - 100;
+
+          tank.speed = Math.random() * 1.2 + 1.2 + levelSpeedMultiplier * 0.3; tank.hp = 3; tank.fireTimer = 0;
+
         }
+
       });
+
     } else if (bossSpawned) {
+
       bosses.forEach(b => {
+
         if (b.y < b.targetY) b.y += 1.5 * timeFactor;
+
         else {
+
           b.x += b.speed * b.dir * timeFactor;
+
           if (b.x <= 20 || b.x >= 660) b.dir *= -1;
+
         }
+
+
 
         b.fireTimer++;
+
         if (b.fireTimer >= 65) {
+
           b.fireTimer = 0;
+
           b.patternAngle += 0.2;
+
           const bSpd = 4.5 + levelSpeedMultiplier;
+
           for (let offset = 0; offset < 15; offset++) {
+
             const ang = b.patternAngle + (offset * (2 * Math.PI / 15));
+
             bossMissiles.push({
+
               x: b.x + 60, y: b.y + 60,
+
               vx: Math.cos(ang) * bSpd, vy: Math.sin(ang) * bSpd
+
             });
+
           }
+
         }
+
       });
+
     }
 
+
+
     powerups.forEach((p, pIdx) => {
+
       p.y += powerupSpeed * timeFactor;
+
       if (p.y > 650) powerups.splice(pIdx, 1);
+
     });
 
+
+
     if (dualShotTimer > 0) dualShotTimer--;
+
     if (trioShotTimer > 0) trioShotTimer--;
+
+
 
     const isInvincible = dodgeTimer > 0;
 
+
+
+    // COLLISION LOGIC FOR ENEMIES & TANKS WITH DESTRUCTIBLE HP
+
     enemies.forEach((enemy, eIdx) => {
+
       if (Math.abs(shipX + 32 - enemy.x - 10) < 35 && Math.abs(shipY + 35 - enemy.y - 10) < 35) {
+
         spawnExplosion(enemy.x + 10, enemy.y + 10, 10);
+
         if (!isInvincible) {
+
           if (shieldCount > 0) { shieldCount--; triggerShake(10, 5); }
+
           else { playerHealth -= 0.5; triggerShake(20, 10); }
+
         }
-        enemies.splice(eIdx, 1);
+
+        enemies[eIdx] = getRandomScout();
+
       }
+
+
 
       missiles.forEach((m, mIdx) => {
+
         if (Math.abs(m.x - enemy.x - 10) < 20 && Math.abs(m.y - enemy.y - 10) < 20) {
+
           missiles.splice(mIdx, 1);
-          let dmg = tempDamageBoostTimer > 0 ? 2.0 : 1.0;
-          enemy.hp -= dmg;
+
+          enemy.hp -= 1.0;
+
           spawnExplosion(enemy.x + 10, enemy.y + 10, 5);
+
           triggerShake(8, 3);
+
           if (enemy.hp <= 0) {
+
             const pts = addScore(10);
+
             addUltimateCharge(1);
+
             spawnFloatingText(enemy.x, enemy.y, `+${pts}`);
-            if (Math.random() < 0.35) {
-              const types = ["shield", "dual", "trio", "health", "temp_speed", "temp_damage"];
+
+            if (Math.random() < 0.25) {
+
+              const types = ["shield", "dual", "trio", "health"];
+
               powerups.push({ x: enemy.x, y: enemy.y, type: types[Math.floor(Math.random() * types.length)] });
+
             }
-            enemies.splice(eIdx, 1);
+
+            enemies[eIdx] = getRandomScout();
+
           }
+
         }
+
       });
+
     });
+
+
 
     if (!isBossStage) {
+
       tanks.forEach((tank, tIdx) => {
+
         if (Math.abs(shipX + 32 - tank.x - 30) < 45 && Math.abs(shipY + 35 - tank.y - 30) < 45) {
+
           spawnExplosion(tank.x + 30, tank.y + 30, 25);
+
           if (!isInvincible) {
+
             if (shieldCount > 0) { shieldCount--; triggerShake(15, 8); }
+
             else { playerHealth -= 1.0; triggerShake(35, 20); }
+
           }
+
           tanks.splice(tIdx, 1);
+
         }
 
+
+
         missiles.forEach((m, mIdx) => {
+
           if (m.x > tank.x && m.x < tank.x + 60 && m.y > tank.y && m.y < tank.y + 60) {
+
             missiles.splice(mIdx, 1);
-            let dmg = tempDamageBoostTimer > 0 ? 2.0 : 1.0;
-            tank.hp -= dmg;
+
+            tank.hp -= 1.0;
+
             spawnExplosion(m.x, m.y, 5);
+
             triggerShake(5, 2);
+
             if (tank.hp <= 0) {
+
               spawnExplosion(tank.x + 30, tank.y + 30, 25);
+
               triggerShake(20, 12);
+
               const pts = addScore(50);
+
               addUltimateCharge(5);
+
               spawnFloatingText(tank.x, tank.y, `+${pts}`);
 
+
+
               if (currentMission === "SNIPER" || currentMission === "TANK_BUSTER") {
+
                 missionProgress++;
+
                 if ((currentMission === "SNIPER" && missionProgress >= 3) || (currentMission === "TANK_BUSTER" && missionProgress >= 5)) {
+
                   score += 350; selectNewMission();
+
                 }
+
               }
+
               tanks.splice(tIdx, 1);
+
             }
+
           }
+
         });
+
       });
+
     }
+
+
 
     if (isBossStage && bossSpawned) {
+
       bosses.forEach((b, bIdx) => {
+
         missiles.forEach((m, mIdx) => {
+
           if (m.x > b.x && m.x < b.x + 120 && m.y > b.y && m.y < b.y + 120) {
+
             missiles.splice(mIdx, 1);
-            let dmg = tempDamageBoostTimer > 0 ? 2.0 : 1.0;
-            b.hp -= dmg;
+
+            b.hp -= 1.0;
+
             spawnExplosion(m.x, m.y, 8);
+
             triggerShake(6, 3);
+
             if (b.hp <= 0) {
+
               spawnExplosion(b.x + 60, b.y + 60, 60);
+
               const pts = addScore(500);
+
               addUltimateCharge(25);
+
               spawnFloatingText(b.x + 40, b.y, `+${pts}`);
+
               bosses.splice(bIdx, 1);
+
               if (bosses.length === 0) gameState = "SHOP";
+
             }
+
           }
+
         });
+
       });
+
     }
+
+
 
     bossMissiles.forEach((bm, bmIdx) => {
+
       if (Math.abs(shipX + 32 - bm.x - 20) < 40 && Math.abs(shipY + 35 - bm.y - 40) < 40) {
+
         spawnExplosion(bm.x + 20, bm.y + 40, 10, ["#9370db", "#ff00ff"]);
+
         if (!isInvincible) {
+
           if (shieldCount > 0) { shieldCount--; triggerShake(12, 6); }
+
           else { playerHealth -= 0.5; triggerShake(22, 11); }
+
         }
+
         bossMissiles.splice(bmIdx, 1);
+
       }
+
     });
+
+
 
     powerups.forEach((p, pIdx) => {
+
       if (Math.abs(shipX + 32 - p.x - 10) < 30 && Math.abs(shipY + 35 - p.y - 10) < 30) {
+
         if (p.type === "shield") { shieldCount = Math.min(2, shieldCount + 1); shieldSound(); }
+
         else if (p.type === "dual") { dualShotTimer = 300; trioShotTimer = 0; reloadSounds.forEach(s => safePlaySound(s)); }
+
         else if (p.type === "trio") { trioShotTimer = 300; dualShotTimer = 0; reloadSounds.forEach(s => safePlaySound(s)); }
+
         else if (p.type === "health") { playerHealth = Math.min(playerMaxHealth, playerHealth + 1.0); healSound(); }
-        else if (p.type === "temp_speed") { tempSpeedBoostTimer = 400; shieldSound(); }
-        else if (p.type === "temp_damage") { tempDamageBoostTimer = 400; shieldSound(); }
+
+
 
         if (currentMission === "COLLECTOR") {
+
           missionProgress++;
+
           if (missionProgress >= 3) { score += 300; selectNewMission(); }
+
         }
+
         powerups.splice(pIdx, 1);
+
       }
+
     });
 
+
+
     if (playerHealth <= 0) {
+
       spawnExplosion(shipX + 32, shipY + 35, 50);
+
       triggerShake(50, 25);
+
       updateScoreInSupabase(score, level);
+
       gameState = "GAMEOVER";
+
     }
+
   }
+
+
 
   particles.forEach((p, idx) => {
+
     p.x += p.vx; p.y += p.vy; p.life--;
+
     if (p.life <= 0) particles.splice(idx, 1);
+
   });
+
+
 
   floatingTexts.forEach((ft, idx) => {
+
     ft.y -= 1; ft.life--;
+
     if (ft.life <= 0) floatingTexts.splice(idx, 1);
+
   });
 
+
+
   let offsetX = 0, offsetY = 0;
+
   if (shakeTimer > 0) {
+
     shakeTimer--;
+
     offsetX = (Math.random() - 0.5) * shakeIntensity * 2;
+
     offsetY = (Math.random() - 0.5) * shakeIntensity * 2;
+
   }
 
+
+
   // ==========================================
+
   // 9. DRAW SCREEN & IMAGES
+
   // ==========================================
+
   ctx.save();
+
   ctx.translate(offsetX, offsetY);
+
+
 
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 800, 600);
 
+
+
   ctx.fillStyle = "#666"; starsBack.forEach(s => ctx.fillRect(s[0], s[1], 1, 1));
+
   ctx.fillStyle = "#aaa"; starsMid.forEach(s => ctx.fillRect(s[0], s[1], 2, 2));
+
   ctx.fillStyle = "#fff"; starsFore.forEach(s => ctx.fillRect(s[0], s[1], 3, 3));
 
+
+
   if (gameState === "AUTH") {
+
     ctx.fillStyle = "#00bfff"; ctx.font = "bold 36px Arial"; ctx.fillText(`SPACE SHOOTER: ${authMode}`, 50, 60);
+
     ctx.fillStyle = "#aaa"; ctx.font = "16px Arial"; ctx.fillText("[UP/DOWN]: Switch Mode | [TAB]: Switch Field | [ENTER]: Submit", 50, 100);
 
+
+
     ctx.fillStyle = activeField === "username" ? "#00ffff" : "#ccc";
+
     ctx.fillText(`Username: ${inputUsername}${activeField === "username" ? "|" : ""}`, 50, 160);
 
+
+
     ctx.fillStyle = activeField === "password" ? "#00ffff" : "#ccc";
+
     ctx.fillText(`Password: ${"*".repeat(inputPassword.length)}${activeField === "password" ? "|" : ""}`, 50, 200);
 
+
+
     if (authMode === "REGISTER") {
+
       ctx.fillStyle = activeField === "email" ? "#00ffff" : "#ccc";
+
       ctx.fillText(`Email: ${inputEmail}${activeField === "email" ? "|" : ""}`, 50, 240);
+
     }
 
+
+
     ctx.fillStyle = authMessage.includes("Error") || authMessage.includes("Warning") ? "#ff4444" : "#44ff44";
+
     ctx.fillText(authMessage, 50, 290);
 
+
+
     ctx.fillStyle = "#ffd700"; ctx.fillText("🏆 SUPABASE LEADERBOARD 🏆", 430, 60);
+
     leaderboard.forEach((entry, idx) => {
+
       ctx.fillStyle = "#fff";
+
       ctx.fillText(`${idx + 1}. ${entry[1]} - ${entry[0]} (Lvl ${entry[2]})`, 430, 100 + idx * 30);
+
     });
 
+
+
   } else if (gameState === "SHOP") {
+
     ctx.fillStyle = "#00bfff"; ctx.font = "bold 32px Arial"; ctx.fillText("🚀 SPACE STATION UPGRADE SHOP 🚀", 100, 50);
+
     ctx.fillStyle = "#ffd700"; ctx.font = "20px Arial"; ctx.fillText(`Available Score (Credits): ${score}`, 100, 110);
 
+
+
     ctx.fillStyle = "#fff"; ctx.font = "16px Arial";
+
     ctx.fillText("Press [1] Upgrade Engine Speed (+1 Speed) ----------- Cost: 150 Score", 100, 170);
+
     ctx.fillText("Press [2] Recharge Shield Battery (+1 Shield) -------- Cost: 100 Score", 100, 210);
+
     ctx.fillText("Press [3] Buy Hull Repairs (+1 Heart) --------------- Cost: 120 Score", 100, 250);
+
     ctx.fillStyle = "#00ff96"; ctx.fillText("Press [4] Instant Ultimate Booster (+50 Charge) ------ Cost: 150 Score", 100, 290);
+
     ctx.fillStyle = "#ff9632"; ctx.fillText("Press [5] Upgrade Projectile Velocity (+1 Missile Speed) - Cost: 250 Score", 100, 330);
 
+
+
     const nextTier = permShotTier + 1;
+
     ctx.fillStyle = "#9370db";
+
     if (WEAPON_UPGRADE_COSTS[nextTier]) ctx.fillText(`Press [6] UPGRADE WEAPONS -> ${WEAPON_TIER_NAMES[nextTier]} ----- Cost: ${WEAPON_UPGRADE_COSTS[nextTier]} Score`, 100, 370);
+
     else ctx.fillText("Press [6] UPGRADE WEAPONS -> MAX LEVEL REACHED", 100, 370);
 
+
+
     ctx.fillStyle = "#00ffff"; ctx.font = "bold 15px Arial";
+
     ctx.fillText("ABILITY KEYS: [C] Dodge Roll | [V / Ctrl] Time Slow / Speed Boost | [SHIFT] Ultimate Beam", 100, 410);
 
+
+
     ctx.fillStyle = "#64ff64"; ctx.font = "16px Arial";
+
     ctx.fillText(`Stats: Speed: ${shipSpeed} | Gun Tier: ${WEAPON_TIER_NAMES[permShotTier]} | Missile Spd: ${playerMissileSpeed} | Shields: ${shieldCount}/2`, 100, 450);
+
     ctx.fillStyle = "#00ff00"; ctx.font = "bold 28px Arial"; ctx.fillText(`Press ENTER to fly to Level ${level + 1}`, 200, 520);
+
+
 
   } else if (gameState === "PLAYING") {
 
+
+
+    // PLAYER LASERS
+
     missiles.forEach(m => {
+
       if (picture_missile.complete && picture_missile.naturalWidth !== 0) {
+
         ctx.drawImage(picture_missile, m.x, m.y, 15, 30);
+
       } else {
+
         ctx.save();
+
         ctx.shadowColor = "#00ffff";
+
         ctx.shadowBlur = 12;
+
         ctx.fillStyle = "#00ffff";
+
         ctx.fillRect(m.x - 2, m.y, 6, 22);
+
         ctx.fillStyle = "#ffffff";
+
         ctx.fillRect(m.x - 1, m.y + 2, 4, 18);
+
         ctx.restore();
+
       }
+
     });
+
+
+
+    // BOSS & TANK LASERS
 
     bossMissiles.forEach(bm => {
+
       ctx.save();
+
       ctx.translate(bm.x + 20, bm.y + 40);
+
       ctx.rotate(Math.PI / 2);
 
+
+
       if (picture_boss_missile.complete && picture_boss_missile.naturalWidth !== 0) {
+
         ctx.drawImage(picture_boss_missile, -40, -20, 80, 40);
+
       } else {
+
         ctx.shadowColor = "#ff00ff";
+
         ctx.shadowBlur = 15;
+
         ctx.fillStyle = "#ff00ff";
+
         ctx.fillRect(-14, -5, 28, 10);
+
         ctx.fillStyle = "#ffffff";
+
         ctx.fillRect(-12, -3, 24, 6);
+
       }
+
       ctx.restore();
+
     });
+
+
+
+    // ENEMIES (CORRECTED ROTATION DIRECTION)
 
     enemies.forEach(e => {
+
       ctx.save();
+
       ctx.translate(e.x + 10, e.y + 10);
 
+
+
+      // Rotate based on horizontal movement direction
+
       if (e.vx > 0) {
-        ctx.rotate(-Math.PI / 2);
+
+        ctx.rotate(-Math.PI / 2); // Facing right
+
       } else if (e.vx < 0) {
-        ctx.rotate(Math.PI / 2);
+
+        ctx.rotate(Math.PI / 2); // Facing left
+
       }
+
+
 
       if (picture_enemy.complete && picture_enemy.naturalWidth !== 0) {
+
         ctx.drawImage(picture_enemy, -10, -10, 20, 20);
+
       } else {
+
         drawFallbackEnemy(-10, -10);
+
       }
+
       ctx.restore();
+
     });
+
+
 
     if (!isBossStage) {
+
       tanks.forEach(t => {
+
         if (picture_tank.complete && picture_tank.naturalWidth !== 0) {
+
           ctx.drawImage(picture_tank, t.x, t.y, 60, 60);
+
         } else {
+
           drawFallbackTank(t.x, t.y);
+
         }
+
       });
+
     } else if (bossSpawned) {
+
       bosses.forEach(b => {
+
         if (picture_boss.complete && picture_boss.naturalWidth !== 0) {
+
           ctx.drawImage(picture_boss, b.x, b.y, 120, 120);
+
         } else {
+
           drawFallbackBoss(b.x, b.y);
+
         }
+
+
 
         ctx.fillStyle = "#640000"; ctx.fillRect(b.x, b.y - 15, 120, 8);
+
         ctx.fillStyle = "#ff0000"; ctx.fillRect(b.x, b.y - 15, Math.max(0, (b.hp / b.maxHp) * 120), 8);
+
       });
+
     }
+
+
+
+    // POWERUPS
 
     powerups.forEach(p => {
+
       ctx.beginPath(); ctx.arc(p.x + 10, p.y + 10, 10, 0, Math.PI * 2);
-      ctx.fillStyle = p.type === "shield" ? "#00bfff" : p.type === "dual" ? "#ff8c00" : p.type === "trio" ? "#9370db" : p.type === "temp_speed" ? "#00ffcc" : p.type === "temp_damage" ? "#ff00ff" : "#ff0000";
+
+      ctx.fillStyle = p.type === "shield" ? "#00bfff" : p.type === "dual" ? "#ff8c00" : p.type === "trio" ? "#9370db" : "#ff0000";
+
       ctx.fill();
+
     });
 
+
+
+    // ULTIMATE BEAM
+
     if (ultimateActiveTimer > 0) {
+
       ctx.save();
+
       ctx.fillStyle = "rgba(0, 191, 255, 0.8)";
+
       ctx.fillRect(shipX - 15, 0, 95, shipY);
+
       ctx.fillStyle = "rgba(200, 240, 255, 0.9)";
+
       ctx.fillRect(shipX + 5, 0, 55, shipY);
+
       ctx.restore();
+
     }
+
+
+
+    // PLAYER SHIP
 
     if (dodgeTimer % 4 < 2) {
+
       if (picture_ship.complete && picture_ship.naturalWidth !== 0) {
+
         ctx.drawImage(picture_ship, shipX, shipY, 65, 70);
+
       } else {
+
         drawFallbackShip(shipX, shipY);
+
       }
+
     }
+
+
+
+    // SHIELDS
 
     if (shieldCount >= 1) { ctx.strokeStyle = "#00bfff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(shipX + 32, shipY + 35, 45, 0, Math.PI * 2); ctx.stroke(); }
+
     if (shieldCount === 2) { ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(shipX + 32, shipY + 35, 51, 0, Math.PI * 2); ctx.stroke(); }
 
+
+
+    // PARTICLES & TEXT
+
     particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); });
+
     floatingTexts.forEach(ft => { ctx.fillStyle = ft.color; ctx.font = "20px Arial"; ctx.fillText(ft.text, ft.x, ft.y); });
 
+
+
+    // HUD TOP LEFT
+
     ctx.fillStyle = "#fff"; ctx.font = "20px Arial";
+
     ctx.fillText(`Score: ${score}`, 10, 25);
+
     ctx.fillStyle = "#32ff32"; ctx.fillText(`Level: ${level}`, 10, 50);
+
     ctx.fillStyle = "#00bfff"; ctx.fillText(`Pilot: ${loggedInUser}`, 10, 75);
+
     ctx.fillStyle = "#ffd700"; ctx.fillText(`Best: ${userBestScore}`, 10, 100);
 
+
+
+    // HUD BOTTOM LEFT: ABILITY COOLDOWNS & ULTIMATE CHARGE
+
     ctx.font = "14px Arial";
+
     ctx.fillStyle = dodgeCooldown > 0 ? "#888888" : "#00ffff";
-    ctx.fillText(`[C] Dodge: ${dodgeCooldown > 0 ? Math.ceil(dodgeCooldown / 60) + 's' : 'READY'}`, 10, 500);
+
+    ctx.fillText(`[C] Dodge: ${dodgeCooldown > 0 ? Math.ceil(dodgeCooldown / 60) + 's' : 'READY'}`, 10, 520);
+
+
 
     ctx.fillStyle = speedBoostCooldown > 0 ? "#888888" : "#ff8c00";
-    ctx.fillText(`[V / Ctrl] Slow Time: ${speedBoostCooldown > 0 ? Math.ceil(speedBoostCooldown / 60) + 's' : 'READY'}`, 10, 520);
 
-    if (tempSpeedBoostTimer > 0) {
-      ctx.fillStyle = "#00ffcc";
-      ctx.fillText(`Temp Speed Boost: ${Math.ceil(tempSpeedBoostTimer / 60)}s`, 10, 540);
-    }
-    if (tempDamageBoostTimer > 0) {
-      ctx.fillStyle = "#ff00ff";
-      ctx.fillText(`Temp Damage Boost: ${Math.ceil(tempDamageBoostTimer / 60)}s`, 10, 560);
-    }
+    ctx.fillText(`[V / Ctrl] Slow Time: ${speedBoostCooldown > 0 ? Math.ceil(speedBoostCooldown / 60) + 's' : 'READY'}`, 10, 540);
 
-    const ultStatusStr = ultimateActiveTimer > 0 ? 'FIRING!' : ultimateCharge >= 100 ? 'READY [PRESS SHIFT]' : `${ultimateCharge}/100 Charge`;
+
+
+    const ultStatusStr = ultimateActiveTimer > 0 ? 'FIRING!' : ultimateCharge >= 100 ? 'READY [PRESS SHIFT]' : `${ultimateCharge}/100 Charge (${Math.ceil(100 - ultimateCharge)} kills needed)`;
+
     ctx.fillStyle = ultimateActiveTimer > 0 ? "#00ff00" : ultimateCharge >= 100 ? "#ff00ff" : "#888888";
-    ctx.fillText(`[SHIFT] Ultimate Beam: ${ultStatusStr}`, 10, 580);
+
+    ctx.fillText(`[SHIFT] Ultimate Beam: ${ultStatusStr}`, 10, 560);
+
+
+
+    // HEARTS
 
     for (let i = 0; i < 5; i++) {
+
       const heartX = 800 - 174 + i * 32;
+
       const isFull = playerHealth >= i + 1;
+
       const isHalf = playerHealth === i + 0.5;
+
       drawPixelHeart(heartX, 15, 24, isFull, isHalf);
+
     }
+
   } else if (gameState === "GAMEOVER") {
+
     ctx.fillStyle = "#ff0000"; ctx.font = "bold 48px Arial"; ctx.fillText("GAME OVER", 50, 100);
+
     ctx.fillStyle = "#fff"; ctx.font = "20px Arial"; ctx.fillText(`Final Score: ${score}`, 50, 160);
+
     ctx.fillText("Press 'R' to Restart", 50, 220);
+
   }
 
+
+
   ctx.restore();
+
 }
 
+
+
 requestAnimationFrame(gameLoop);
+
 </script>
+
 </body>
-</html>
+
+</html> 
