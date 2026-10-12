@@ -1017,12 +1017,16 @@ function gameLoop(timestamp) {
             spawnFloatingText(enemy.x, enemy.y, `+${pts}`);
             if (Math.random() < 0.25) {
               const types = ["shield", "health"];
-              if (permShotTier >= 2) types.push("dual");
-              if (permShotTier >= 3) types.push("trio");
-              if (permShotTier >= 4) types.push("quad");
-              if (permShotTier >= 5) types.push("penta");
-              if (permShotTier >= 6) types.push("hexa");
-              if (permShotTier >= 7) types.push("hepta");
+              
+              // POWERUPS ARE ALWAYS 2 STEPS AHEAD OF THE PERMANENT TIER
+              const dropTier = permShotTier + 2;
+              if (dropTier === 3) types.push("trio");
+              else if (dropTier === 4) types.push("quad");
+              else if (dropTier === 5) types.push("penta");
+              else if (dropTier === 6) types.push("hexa");
+              else if (dropTier === 7) types.push("hepta");
+              else if (dropTier > 7) types.push("hepta");
+
               powerups.push({ x: enemy.x, y: enemy.y, type: types[Math.floor(Math.random() * types.length)] });
             }
             enemies[eIdx] = getRandomScout();
@@ -1120,6 +1124,7 @@ function gameLoop(timestamp) {
           hexaShotTimer = 0;
           heptaShotTimer = 0;
 
+          // LOWER TIER POWERUPS CANNOT OVERRIDE HIGHER PERMANENT WEAPONS
           if (incomingTier > permShotTier) {
             if (incomingTier === 2) dualShotTimer = 300;
             else if (incomingTier === 3) trioShotTimer = 300;
