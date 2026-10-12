@@ -71,10 +71,24 @@ window.addEventListener('click', () => {
   }
 }, { once: true });
 
+// Optimized sound pool system to prevent audio buffer overload / crashes
+const soundPool = {};
 function safePlaySound(src, volume = 0.5) {
   try {
-    const snd = new Audio(src);
+    if (!soundPool[src]) {
+      soundPool[src] = [];
+      for (let i = 0; i < 4; i++) {
+        const snd = new Audio(src);
+        soundPool[src].push(snd);
+      }
+    }
+    // Find an available or reset a channel to avoid overlapping audio glitches
+    let snd = soundPool[src].find(s => s.paused || s.ended);
+    if (!snd) {
+      snd = soundPool[src][0];
+    }
     snd.volume = volume;
+    snd.currentTime = 0;
     snd.play().catch(() => {});
   } catch (e) {}
 }
@@ -1018,14 +1032,13 @@ function gameLoop(timestamp) {
             if (Math.random() < 0.25) {
               const types = ["shield", "health"];
               
-              // POWERUPS ARE ALWAYS 2 STEPS AHEAD OF THE PERMANENT TIER
-              const dropTier = permShotTier + 2;
-              if (dropTier === 3) types.push("trio");
-              else if (dropTier === 4) types.push("quad");
-              else if (dropTier === 5) types.push("penta");
-              else if (dropTier === 6) types.push("hexa");
-              else if (dropTier === 7) types.push("hepta");
-              else if (dropTier > 7) types.push("hepta");
+              const maxUnlockedTier = permShotTier + 2;
+              if (maxUnlockedTier >= 2) types.push("dual");
+              if (maxUnlockedTier >= 3) types.push("trio");
+              if (maxUnlockedTier >= 4) types.push("quad");
+              if (maxUnlockedTier >= 5) types.push("penta");
+              if (maxUnlockedTier >= 6) types.push("hexa");
+              if (maxUnlockedTier >= 7) types.push("hepta");
 
               powerups.push({ x: enemy.x, y: enemy.y, type: types[Math.floor(Math.random() * types.length)] });
             }
@@ -1124,7 +1137,6 @@ function gameLoop(timestamp) {
           hexaShotTimer = 0;
           heptaShotTimer = 0;
 
-          // LOWER TIER POWERUPS CANNOT OVERRIDE HIGHER PERMANENT WEAPONS
           if (incomingTier > permShotTier) {
             if (incomingTier === 2) dualShotTimer = 300;
             else if (incomingTier === 3) trioShotTimer = 300;
@@ -1329,7 +1341,7 @@ function gameLoop(timestamp) {
     if (shieldCount === 2) { ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(shipX + 32, shipY + 35, 51, 0, Math.PI * 2); ctx.stroke(); }
 
     particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); });
-    floatingTexts.forEach(ft => { ctx.fillStyle = ft.color; ctx.font = "20px Arial"; ctx.fillText(ft.text, ft.x, ft.y); });
+    floatingTexts.forEach(ft => { ctx.fillStyle = ft.color; ft.life--; ctx.fillText(ft.text, ft.x, ft.y); });
 
     ctx.fillStyle = "#fff"; ctx.font = "20px Arial";
     ctx.fillText(`Score: ${score}`, 10, 25);
