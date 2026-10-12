@@ -19,3 +19,9 @@ I try to update and improve things as quickly as possible.
 If you run into any bugs or see something that looks broken, please open an issue or let me know so I can try to fix it!
 
 # Enjoy, and have fun!
+
+
+A Picture
+
+<img width="1060" height="749" alt="image" src="https://github.com/user-attachments/assets/b80cf740-a988-42e7-941f-454aed272d90" />
+
